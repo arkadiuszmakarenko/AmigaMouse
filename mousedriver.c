@@ -52,10 +52,11 @@ void main(void)
 	{
 		mousedata.task = FindTask(0);
 		mousedata.sigbit = 1 << intsignal;
-		   
-		AddIntServer(INTB_VERTB, &vertblankint); 
+
+		AddIntServer(INTB_VERTB, &vertblankint);
 
 		SetTaskPri(mousedata.task, 20); /* same as input.device */
+		PutStr("DEBUG: NM_WHEEL driver started\n");
 		while (1)
 		{
 			ULONG signals = Wait (mousedata.sigbit | SIGBREAKF_CTRL_C);
@@ -67,13 +68,22 @@ void main(void)
 			if (signals & mousedata.sigbit)
 			{
 				int code = MM_NOTHING;
-				if (!(mousedata.potgo & 0x400)) code |= MM_WHEEL_DOWN;
-				if (mousedata.potgo & 0x100) code |= MM_WHEEL_UP;
-				if (!(mousedata.pra & 0x40)) code |= MM_MIDDLEMOUSE_UP;
+				if (!(mousedata.potgo & 0x0400)) {
+					code |= MM_WHEEL_DOWN;
+					PutStr("DEBUG: NM_WHEEL_DOWN\n");
+				}
+				if (mousedata.potgo & 0x0100) {
+					code |= MM_WHEEL_UP;
+					PutStr("DEBUG: NM_WHEEL_UP\n");
+				}
+				if (!(mousedata.pra & 0x40)) {
+					code |= MM_MIDDLEMOUSE_UP;
+					PutStr("DEBUG: NM_MMB_DOWN\n");
+				}
 
 				CreateMouseEvents(code);
 			}
-		}		
+		}
 	}
 	FreeResources();
 }
