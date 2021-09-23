@@ -66,7 +66,7 @@ void main(void)
 			}
 			if (signals & mousedata.sigbit)
 			{
-				int code = MM_NOTHING
+				int code = MM_NOTHING;
 				if (!(mousedata.potgo & 0x400)) code |= MM_WHEEL_DOWN;
 				if (mousedata.potgo & 0x100) code |= MM_WHEEL_UP;
 				if (!(mousedata.pra & 0x40)) code |= MM_MIDDLEMOUSE_UP;

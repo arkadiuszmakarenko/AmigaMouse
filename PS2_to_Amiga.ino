@@ -267,7 +267,7 @@ void loop()
 
 //
 // Interrupt routine called whenever kPin_B3 goes LOW
-// This is connected to pin 5 on the Amiga (Right mouse button)
+// This is connected to pin 5 on the Amiga (Middle mouse button)
 // We use the left/middle/right mouse buttons as a protocol, giving us 8 different commands
 //
 void kPin_B3_Int()
