@@ -24,7 +24,7 @@ struct {
     UWORD joy0dat;			// 2
     UBYTE pra;				// 4 0xbfe001
     UBYTE pad;				// 5
-    ULONG sigbit;			// 6	
+    ULONG sigbit;			// 6
     struct Task *task;		// 10
     APTR potgoResource;		// 14
 } mousedata;
@@ -45,6 +45,7 @@ struct MsgPort    *InputMP;
 struct InputEvent *MouseEvent;
 struct InputBase  *InputBase;
 BYTE intsignal;
+int code;
 
 void main(void)
 {
@@ -67,21 +68,26 @@ void main(void)
 			}
 			if (signals & mousedata.sigbit)
 			{
-				int code = MM_NOTHING;
-				if (!(mousedata.potgo & 0x0400)) {
+
+				code = MM_NOTHING;
+				if((mousedata.joy0dat & 0x0303) == 0x0201)
+				{
 					code |= MM_WHEEL_DOWN;
-					PutStr("DEBUG: NM_WHEEL_DOWN\n");
+//					PutStr("DEBUG: NM_WHEEL_DOWN\n");
 				}
-				if (mousedata.potgo & 0x0100) {
+				if((mousedata.joy0dat & 0x0303) == 0x0102)
+				{
 					code |= MM_WHEEL_UP;
-					PutStr("DEBUG: NM_WHEEL_UP\n");
+//					PutStr("DEBUG: NM_WHEEL_UP\n");
 				}
-				if (!(mousedata.pra & 0x40)) {
+				if(!(mousedata.pra & 0x40))
+				{
 					code |= MM_MIDDLEMOUSE_UP;
-					PutStr("DEBUG: NM_MMB_DOWN\n");
+//					PutStr("DEBUG: NM_MMB_DOWN\n");
 				}
 
 				CreateMouseEvents(code);
+
 			}
 		}
 	}
