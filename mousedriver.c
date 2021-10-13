@@ -8,14 +8,21 @@
 #include <dos/dos.h>
 #include <stdio.h>
 
-#define NM_WHEEL_UP 0x7A
-#define NM_WHEEL_DOWN 0x7B
+#include "newmouse.h"
+//#define NM_WHEEL_UP 0x7A
+//#define NM_WHEEL_DOWN 0x7B
 
 #define MM_NOTHING 0
 #define MM_WHEEL_DOWN 1
 #define MM_WHEEL_UP 2
-#define MM_MIDDLEMOUSE_DOWN 3
-#define MM_MIDDLEMOUSE_UP 4
+#define MM_WHEEL_LEFT 3
+#define MM_WHEEL_RIGHT 4
+#define MM_MIDDLEMOUSE_DOWN 5
+#define MM_MIDDLEMOUSE_UP 6
+#define MM_FOURTH_DOWN 7
+#define MM_FOURTH_UP 8
+#define MM_FIVETH_DOWN 9
+#define MM_FIVETH_UP 10
 
 extern void VertBServer();  /* proto for asm interrupt server */
 
@@ -30,8 +37,8 @@ struct {
 } mousedata;
 
 struct Interrupt vertblankint = {
-    { 0, 0, NT_INTERRUPT, 10-10, "Arduino PS/2 mouse adapter" },
-    &mousedata,
+	{ 0, 0, NT_INTERRUPT, 10-10, "MSP430 laser mouse drver" },
+	&mousedata,
 	VertBServer
 };
 
@@ -45,9 +52,9 @@ struct MsgPort    *InputMP;
 struct InputEvent *MouseEvent;
 struct InputBase  *InputBase;
 BYTE intsignal;
-int code;
+int code, mbutton_state, prev_joy0dat;
 
-void main(void)
+int main(void)
 {
 	if (AllocResources())
 	{
@@ -57,7 +64,8 @@ void main(void)
 		AddIntServer(INTB_VERTB, &vertblankint);
 
 		SetTaskPri(mousedata.task, 20); /* same as input.device */
-		PutStr("DEBUG: NM_WHEEL driver started\n");
+		printf("Blabber mouse wheel driver installed.\nMake sure a suitable mouse is connected to mouse port, otherwise expect unexpected.\n");
+//		printf("DEBUG: NM_WHEEL driver started\n");
 		while (1)
 		{
 			ULONG signals = Wait (mousedata.sigbit | SIGBREAKF_CTRL_C);
@@ -70,28 +78,72 @@ void main(void)
 			{
 
 				code = MM_NOTHING;
-				if((mousedata.joy0dat & 0x0303) == 0x0201)
-				{
-					code |= MM_WHEEL_DOWN;
-//					PutStr("DEBUG: NM_WHEEL_DOWN\n");
-				}
-				if((mousedata.joy0dat & 0x0303) == 0x0102)
-				{
-					code |= MM_WHEEL_UP;
-//					PutStr("DEBUG: NM_WHEEL_UP\n");
-				}
-				if(!(mousedata.pra & 0x40))
-				{
-					code |= MM_MIDDLEMOUSE_UP;
-//					PutStr("DEBUG: NM_MMB_DOWN\n");
+//				if(prev_joy0dat != (mousedata.joy0dat & 0x0303))
+//				{
+//					printf("joy: %04x->%04x -> ", prev_joy0dat & 0x0303, mousedata.joy0dat & 0x0303);
+//					prev_joy0dat = mousedata.joy0dat & 0x0303;
+//				}
+				switch(mousedata.joy0dat & 0x0303)
+				{                    // YQXQ
+					case 0x0000: // 1111 MMB pressed
+						code |= MM_MIDDLEMOUSE_DOWN;
+//						printf("1111 MMB down\n");
+						break;
+					case 0x0001: // 1110 middle button up
+						code |= MM_MIDDLEMOUSE_UP;
+//						printf("1110 MMB up\n");
+						break;
+					case 0x0002: // 1100 4th down
+						code |= MM_FOURTH_DOWN;
+						printf("1100 4th down\n");
+						break;
+					case 0x003: // 1101 4th up
+						code |= MM_FOURTH_UP;
+						printf("1101 4th up\n");
+						break;
+					case 0x0100: // 1011 5th down
+						code |= MM_FIVETH_DOWN;
+						printf("1011 5th down\n");
+						break;
+					case 0x0101: // 1010 5th up
+						code |= MM_FIVETH_UP;
+						printf("1010 5th up\n");
+						break;
+					case 0x0102: // 1000 wheel right
+						code |= MM_WHEEL_RIGHT;
+						printf("1000 wheel right\n");
+						break;
+					case 0x0103: // 1001 wheel left
+						code |= MM_WHEEL_LEFT;
+						printf("1001 wheel left\n");
+						break;
+					case 0x0200: // 0011 wheel up
+						code |= MM_WHEEL_UP;
+//						printf("0011 wheel up\n");
+						break;
+					case 0x0201: // 0010 wheel down
+						code |= MM_WHEEL_DOWN;
+//						printf("0010 wheel down\n");
+						break;
+					case 0x0202: // 1111 -> nothing
+//						printf("\n");
+//					printf("0x%02x\n", prev_joy0dat & 0x0303);
+						break;
+					default:
+						printf("unsupported code 0x%02x\n", prev_joy0dat & 0x0303);
+						break;
 				}
 
 				CreateMouseEvents(code);
 
 			}
 		}
+	} else {
+		return -1;
 	}
 	FreeResources();
+
+	return 0;
 }
 
 int AllocResources()
@@ -161,10 +213,28 @@ void CreateMouseEvents(int t)
 	{
 		case MM_WHEEL_DOWN:
 			MouseEvent->ie_Code = NM_WHEEL_DOWN;
-			break;
+		break;
 		case MM_WHEEL_UP:
 			MouseEvent->ie_Code = NM_WHEEL_UP;
-			break;
+		break;
+		case MM_WHEEL_LEFT:
+			MouseEvent->ie_Code = NM_WHEEL_LEFT;
+		break;
+		case MM_WHEEL_RIGHT:
+			MouseEvent->ie_Code = NM_WHEEL_RIGHT;
+		break;
+//		case MM_FOURTH_DOWN:
+//			MouseEvent->ie_Code = NM_FOURTH_DOWN;
+//		break;
+//		case MM_FOURTH_UP
+//			MouseEvent->ie_Code = NM_FOURTH_UP;
+//		break;
+//		case MM_FIVETH_DOWN:
+//			MouseEvent->ie_Code = NM_???;
+//		break;
+//		case MM_FIVETH_UP
+//			MouseEvent->ie_Code = NM_???;
+//		break;
 		case MM_MIDDLEMOUSE_DOWN:
 			MouseEvent->ie_Code = IECODE_MBUTTON;
 			MouseEvent->ie_Class = IECLASS_RAWMOUSE;
@@ -172,13 +242,27 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_Y = 0;
 		break;
 		case MM_MIDDLEMOUSE_UP:
-			MouseEvent->ie_Code = IECODE_LBUTTON|IECODE_UP_PREFIX;			// fixme!!!!!
+			MouseEvent->ie_Code = IECODE_MBUTTON | IECODE_UP_PREFIX;
 			MouseEvent->ie_Class = IECLASS_RAWMOUSE;
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
 			break;
+		case MM_FOURTH_DOWN:
+			MouseEvent->ie_Code = NM_BUTTON_FOURTH;
+//			MouseEvent->ie_Class = IECLASS_RAWMOUSE;
+			MouseEvent->ie_Class = IECLASS_NEWMOUSE;
+			MouseEvent->ie_X = 0;
+			MouseEvent->ie_Y = 0;
+		break;
+		case MM_FOURTH_UP:
+			MouseEvent->ie_Code = NM_BUTTON_FOURTH | IECODE_UP_PREFIX;
+//			MouseEvent->ie_Class = IECLASS_RAWMOUSE;
+			MouseEvent->ie_Class = IECLASS_NEWMOUSE;
+			MouseEvent->ie_X = 0;
+			MouseEvent->ie_Y = 0;
+			break;
 	}
-	
+
 	InputIO->io_Data = (APTR)MouseEvent;
 	InputIO->io_Length = sizeof(struct InputEvent);
 	InputIO->io_Command = IND_WRITEEVENT;

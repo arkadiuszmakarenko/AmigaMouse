@@ -13,9 +13,9 @@ DEPS=
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-mm: mousedriver.o vbrserver.o
-	$(CC) $(CFLAGS) -o mm mousedriver.o vbrserver.o
-	
+Blabber.driver: mousedriver.o vbrserver.o
+	$(CC) $(CFLAGS) -o $@ mousedriver.o vbrserver.o
+
 clean:
 	rm *.o
 
