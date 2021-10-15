@@ -34,4 +34,8 @@
 #define NM_BUTTON_FOURTH	(0x7E)
 #endif
 
+#ifndef NM_BUTTON_FIVETH
+#define NM_BUTTON_FIVETH	(0x7F)
+#endif
+
 #endif /* NEWMOUSE_H */

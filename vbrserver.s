@@ -54,7 +54,7 @@ _VertBServer:
 Delay:
 	; cocolino 36,
 	; ez-mouse 25
-	MOVEQ	#25,D1					; Needs testing on a slower Amiga!
+	MOVEQ	#30,D1					; Needs testing on a slower Amiga!
 .wait1	
 	MOVE.B	vhposr+1(A0),D0			; Bits 7-0     H8-H1 (horizontal position)
 .wait2	
