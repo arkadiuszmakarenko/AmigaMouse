@@ -84,14 +84,13 @@ Delay:
 	;
 	; Signal the main task
 	;
-	CMP.W	#$0,2(A2)
-	BEQ	exit
-
 	MOVE.L 4.W,A6
 	MOVE.L 6(A1),D0					; Signals
 	MOVE.L 10(A1),A1				; Task
 
 	; FIXME: If values are zero, no need to signal
+	TST.W 2(A2)
+	BEQ	exit
 
 	JSR _LVOSignal(A6)
 	MOVEM.L (SP)+,A2
