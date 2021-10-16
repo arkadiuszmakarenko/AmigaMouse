@@ -15,7 +15,7 @@
     SECTION CODE
 
 	; Pin 5 (mouse button 3) is connected to an interrupt enabled pin on the Arduino
-	; Toggling this generates an interrupt and the Arduino writes the scroll wheel 
+	; Toggling this generates an interrupt and the Arduino writes the scroll wheel
 	; values to right/middle mopuse buttons
 	XDEF    _VertBServer
 _VertBServer:
@@ -69,7 +69,7 @@ Delay:
 	; Save regs for C code after MMB pulse
 	MOVE.W	potinp(A0),(A2)			; Middle/Right Mouse
 	MOVE.W	joy0dat(A0),D0			; Mouse Counters (used now)
-	EOR.W	D0,2(A2)			; EXOR X and Y with whole joy0dat
+	EOR.W	D0,2(A2)			; EXOR joy0dat before and after pulse
 
 	; cmp.b #0, D5
 	; BNE skiplmouse
@@ -84,13 +84,14 @@ Delay:
 	;
 	; Signal the main task
 	;
+	CMP.W	#$0,2(A2)
+	BEQ	exit
+
 	MOVE.L 4.W,A6
 	MOVE.L 6(A1),D0					; Signals
 	MOVE.L 10(A1),A1				; Task
 
 	; FIXME: If values are zero, no need to signal
-	CMP.W	#$0,joy0dat(A0)
-	BEQ	exit
 
 	JSR _LVOSignal(A6)
 	MOVEM.L (SP)+,A2
