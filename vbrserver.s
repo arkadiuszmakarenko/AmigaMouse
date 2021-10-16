@@ -1,5 +1,5 @@
-    INCLUDE "hardware/custom.i"
-    INCLUDE "hardware/cia.i"
+	INCLUDE "hardware/custom.i"
+	INCLUDE "hardware/cia.i"
 	INCLUDE "devices/input.i"
 	INCLUDE "devices/inputevent.i"
 	INCLUDE "resources/potgo.i"
@@ -21,14 +21,14 @@
 _VertBServer:
 
 	; If the right mouse button being held down do nothing!
-	LEA		_custom,A0
-	MOVE.W	potinp(A0), D0
-	AND.W	#$400, D0
-	BEQ		exit
+	;LEA		_custom,A0
+	;MOVE.W	potinp(A0), D0
+	;AND.W	#$400, D0
+	;BEQ		exit
 
 	; If the left mouse button being held down do nothing!
-	BTST	#6, $BFE001
-	BEQ		exit
+	;BTST	#6, $BFE001
+	;BEQ		exit
 
 	MOVEM.L A2, -(SP)
 
@@ -38,7 +38,7 @@ _VertBServer:
 	; moveq #1,d5
 	; MOVE.B $BFE001, 4(A1)
 ; bla:
-	
+
 
 	MOVE.L	A1, A2					 ; is_Data
 
@@ -51,39 +51,47 @@ _VertBServer:
 	; Wait a bit.
 	; The Arduino needs to catch the interrupt and reply on the right/middle mouse buttons
 	LEA		_custom,A0
+
+	; Save regs for C code before
+	MOVE.W	joy0dat(A0),2(A2)		; Mouse Counters (used now)
+
 Delay:
 	; cocolino 36,
 	; ez-mouse 25
 	MOVEQ	#30,D1					; Needs testing on a slower Amiga!
-.wait1	
+.wait1
 	MOVE.B	vhposr+1(A0),D0			; Bits 7-0     H8-H1 (horizontal position)
-.wait2	
+.wait2
 	CMP.B	vhposr+1(A0),D0
 	BEQ.B	.wait2
 	DBF	D1,	.wait1
-	
-	; Save regs for C code
+
+	; Save regs for C code after MMB pulse
 	MOVE.W	potinp(A0),(A2)			; Middle/Right Mouse
-	MOVE.W	joy0dat(A0),2(A2)		; Mouse Counters (not used yet)
-	
+	MOVE.W	joy0dat(A0),D0			; Mouse Counters (used now)
+	EOR.W	D0,2(A2)			; EXOR X and Y with whole joy0dat
+
 	; cmp.b #0, D5
 	; BNE skiplmouse
-	MOVE.B 	$BFE001,4(A2)			; Left Mouse 
+	MOVE.B 	$BFE001,4(A2)			; Left Mouse
 ; skiplmouse:
 
 	; Output enable right & middle mouse.  Write 1 to right and 1 to middle
 	MOVE.L	#$00000F00,D0
 	MOVE.L	#$00000F00,D1
 	JSR		_LVOWritePotgo(A6)		; WritePotgo(word,mask)(d0/d1)
-	
+
 	;
 	; Signal the main task
 	;
 	MOVE.L 4.W,A6
 	MOVE.L 6(A1),D0					; Signals
 	MOVE.L 10(A1),A1				; Task
-	
+
 	; FIXME: If values are zero, no need to signal
+	CMP.W	#$0,joy0dat(A0)
+	BEQ	exit
+
 	JSR _LVOSignal(A6)
 	MOVEM.L (SP)+,A2
 
@@ -92,7 +100,7 @@ exit:
 	MOVEQ.L #0,D0					; set Z flag to continue to process other vb-servers
 	RTS
 
-	
+
 skip:
 	MOVE.W	#$0f00, $dff180
 	JMP		exit
