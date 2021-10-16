@@ -81,6 +81,10 @@ Delay:
 	MOVE.L	#$00000F00,D1
 	JSR		_LVOWritePotgo(A6)		; WritePotgo(word,mask)(d0/d1)
 
+	; FIXME: If values are zero, no need to signal
+	TST.W	2(A2)
+	BEQ	exit
+
 	;
 	; Signal the main task
 	;
@@ -88,14 +92,10 @@ Delay:
 	MOVE.L 6(A1),D0					; Signals
 	MOVE.L 10(A1),A1				; Task
 
-	; FIXME: If values are zero, no need to signal
-	TST.W 2(A2)
-	BEQ	exit
-
 	JSR _LVOSignal(A6)
-	MOVEM.L (SP)+,A2
 
 exit:
+	MOVE.L (SP)+,A2
 	MOVE.L	$DFF000, A0				; if you install a vertical blank server at priority 10 or greater, you must place custom ($DFF000) in A0 before exiting
 	MOVEQ.L #0,D0					; set Z flag to continue to process other vb-servers
 	RTS
