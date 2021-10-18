@@ -9,7 +9,8 @@
 
 * Entered with:       A0 == scratch (execpt for highest pri vertb server)
 *  D0 == scratch      A1 == is_Data
-*  D1 == scratch      A5 == vector to interrupt code (scratch)
+*  D1 == scratch     *A2*== scratch (preserved on stack and restored before exit)
+*                     A5 == vector to interrupt code (scratch)
 *                     A6 == scratch
 *
     SECTION CODE
@@ -20,32 +21,19 @@
 	XDEF    _VertBServer
 _VertBServer:
 
-	; If the right mouse button being held down do nothing!
-	;LEA		_custom,A0
-	;MOVE.W	potinp(A0), D0
-	;AND.W	#$400, D0
-	;BEQ		exit
+	; If the middle mouse button being held down do nothing!
+	; Just in case we have plain mouse plugged in and MMB is down (line short)
+	LEA	_custom,A0
+	MOVE.W	potinp(A0), D0				; read POTGOR
+	AND.W	#$100, D0				; mask with BIT8
+	BEQ	exit
 
-	; If the left mouse button being held down do nothing!
-	;BTST	#6, $BFE001
-	;BEQ		exit
-
-	MOVEM.L A2, -(SP)
-
-	; Alternatively could we ignore it?
-	; BTST	#6, $BFE001
-	; BNE		bla
-	; moveq #1,d5
-	; MOVE.B $BFE001, 4(A1)
-; bla:
-
-
-	MOVE.L	A1, A2					 ; is_Data
-
-	; Output enable right & middle mouse.  Write 1 to right and 0 to middle
-	MOVE.L	14(A2),A6
-	MOVE.L	#$00000E00,D0
-	MOVE.L	#$00000F00,D1
+	; Output enable right & middle mouse.  Write 0 to middle
+	; 09    OUTLX   Output enable for Paula (pin 32 for DIL and pin 35 for PLCC) -> enable
+	; 08    DATLX   I/O data Paula (pin 32 for DIL and pin 35 for PLCC)          -> set low
+	MOVE.L	14(A1),A6				; is_Data
+	MOVE.L	#$00000200,D0				; word
+	MOVE.L	#$00000300,D1				; mask
 	JSR		_LVOWritePotgo(A6)		; WritePotgo(word,mask)(d0/d1)
 
 	; Wait a bit.
@@ -53,36 +41,38 @@ _VertBServer:
 	LEA		_custom,A0
 
 	; Save regs for C code before
-	MOVE.W	joy0dat(A0),2(A2)		; Mouse Counters (used now)
+	MOVE.W	joy0dat(A0),2(A1)			; Mouse Counters (used now)
 
 Delay:
 	; cocolino 36,
 	; ez-mouse 25
 	MOVEQ	#30,D1					; Needs testing on a slower Amiga!
 .wait1
-	MOVE.B	vhposr+1(A0),D0			; Bits 7-0     H8-H1 (horizontal position)
+	MOVE.B	vhposr+1(A0),D0				; Bits 7-0     H8-H1 (horizontal position)
 .wait2
 	CMP.B	vhposr+1(A0),D0
 	BEQ.B	.wait2
 	DBF	D1,	.wait1
 
 	; Save regs for C code after MMB pulse
-	MOVE.W	potinp(A0),(A2)			; Middle/Right Mouse
-	MOVE.W	joy0dat(A0),D0			; Mouse Counters (used now)
-	EOR.W	D0,2(A2)			; EXOR joy0dat before and after pulse
+	MOVE.W	potinp(A0),(A1)				; Middle/Right Mouse
+	MOVE.W	joy0dat(A0),D0				; Mouse Counters (used now)
+	EOR.W	D0,2(A1)				; EXOR joy0dat before and after pulse
 
 	; cmp.b #0, D5
 	; BNE skiplmouse
-	MOVE.B 	$BFE001,4(A2)			; Left Mouse
+	MOVE.B 	$BFE001,4(A1)				; Left Mouse ODD CIA (CIA-A)
 ; skiplmouse:
 
-	; Output enable right & middle mouse.  Write 1 to right and 1 to middle
-	MOVE.L	#$00000F00,D0
-	MOVE.L	#$00000F00,D1
+	; Output enable right & middle mouse.  Write 1 to middle
+	; 09    OUTLX   Output enable for Paula (pin 32 for DIL and pin 35 for PLCC) -> enable
+	; 08    DATLX   I/O data Paula (pin 32 for DIL and pin 35 for PLCC)          -> set high
+	MOVE.L	#$00000300,D0				; word
+	MOVE.L	#$00000300,D1				; mask
 	JSR		_LVOWritePotgo(A6)		; WritePotgo(word,mask)(d0/d1)
 
-	; FIXME: If values are zero, no need to signal
-	TST.W	2(A2)
+	; If there was no change on data joy0dat values, no need to signal
+	TST.W	2(A1)
 	BEQ	exit
 
 	;
@@ -94,8 +84,18 @@ Delay:
 
 	JSR _LVOSignal(A6)
 
+	LEA		_custom,A0
+
+Delay2:
+	MOVEQ	#127,D1					; Needs testing on a slower Amiga!
+.wait3
+	MOVE.B	vhposr+1(A0),D0				; Bits 7-0     H8-H1 (horizontal position)
+.wait4
+	CMP.B	vhposr+1(A0),D0
+	BEQ.B	.wait4
+	DBF	D1,	.wait3
+
 exit:
-	MOVE.L (SP)+,A2
 	MOVE.L	$DFF000, A0				; if you install a vertical blank server at priority 10 or greater, you must place custom ($DFF000) in A0 before exiting
 	MOVEQ.L #0,D0					; set Z flag to continue to process other vb-servers
 	RTS

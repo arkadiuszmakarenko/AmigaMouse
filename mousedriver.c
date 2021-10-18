@@ -27,11 +27,11 @@
 extern void VertBServer();  /* proto for asm interrupt server */
 
 struct {
-    UWORD potgo;			// 0 0xdff016
-    UWORD joy0dat;			// 2
-    UBYTE pra;				// 4 0xbfe001
-    UBYTE pad;				// 5
-    ULONG sigbit;			// 6
+    UWORD potgo;		// 0 0xdff016
+    UWORD joy0dat;		// 2
+    UBYTE pra;			// 4 0xbfe001
+    UBYTE pad;			// 5
+    ULONG sigbit;		// 6
     struct Task *task;		// 10
     APTR potgoResource;		// 14
 } mousedata;
@@ -53,6 +53,7 @@ struct InputEvent *MouseEvent;
 struct InputBase  *InputBase;
 BYTE intsignal;
 int code, button_state, prev_joy0dat, temp;
+//int cnt;
 
 int main(void)
 {
@@ -60,11 +61,11 @@ int main(void)
 	{
 		mousedata.task = FindTask(0);
 		mousedata.sigbit = 1 << intsignal;
-
+		cnt = 50;
 		AddIntServer(INTB_VERTB, &vertblankint);
 
 		SetTaskPri(mousedata.task, 20); /* same as input.device */
-		printf("Blabber mouse wheel driver installed.\nMake sure a suitable mouse is connected to mouse port, otherwise expect unexpected.\n");
+		printf("Blabber mouse wheel driver installed.\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
 //		printf("DEBUG: NM_WHEEL driver started\n");
 		while (1)
 		{
@@ -76,25 +77,25 @@ int main(void)
 			}
 			if (signals & mousedata.sigbit)
 			{
-
 				temp = mousedata.joy0dat ^ ((mousedata.joy0dat & 0x0202) >> 1);
 				temp &= 0x0303;
 				temp |= (temp & 0x0300) >> 6;
 				temp &= 0x000F;
 				temp ^= 0x000F;
 				code = MM_NOTHING;
-//				if(prev_joy0dat != (mousedata.joy0dat & 0x0303))
-//				{
-//					printf("joy: %04x->%04x -> ", prev_joy0dat & 0x0303, mousedata.joy0dat & 0x0303);
-//					prev_joy0dat = mousedata.joy0dat & 0x0303;
-//				}
-//				if( (mousedata.joy0dat & 0x0303) != 0x0202)
+				if(prev_joy0dat != (mousedata.joy0dat & 0x0303))
+				{
+//					printf("joy: %04x->%04x -> %1X\n", mousedata.potgo & 0x0303, mousedata.joy0dat & 0x0303, temp);
+//					printf("joy: %04x->%04x -> %1X\n", prev_joy0dat & 0x0303, mousedata.joy0dat & 0x0303, temp);
+					prev_joy0dat = mousedata.joy0dat & 0x0303;
+				}
+//				if( (mousedata.joy0dat & 0x0303) != 0x0000)
 //				{
 //					printf("%1X -> ", temp);
 //				}
 				switch(mousedata.joy0dat & 0x0303)
 				{                    // YQXQ
-					case 0x0000: // 1111 MMB pressed
+					case 0x0202: // 1111 MMB pressed
 						if(!(button_state & 0x01))
 						{
 //							printf("%1X 1111 MMB down\n", temp);
@@ -102,7 +103,7 @@ int main(void)
 							button_state |= 0x01;
 						}
 						break;
-					case 0x0001: // 1110 middle button up
+					case 0x0203: // 1110 middle button up
 						if(button_state & 0x01)
 						{
 //							printf("%1X 1110 MMB up\n", temp);
@@ -111,7 +112,7 @@ int main(void)
 						}
 						break;
 
-					case 0x0002: // 1100 4th down
+					case 0x0200: // 1100 4th down
 						if(!(button_state & 0x02))
 						{
 //							printf("%1X 1100 4th down\n", temp);
@@ -119,7 +120,7 @@ int main(void)
 							button_state |= 0x02;
 						}
 						break;
-					case 0x003: // 1101 4th up
+					case 0x0201: // 1101 4th up
 						if(button_state & 0x02)
 						{
 //							printf("%1X 1101 4th up\n", temp);
@@ -128,7 +129,7 @@ int main(void)
 						}
 						break;
 
-					case 0x0100: // 1011 5th down
+					case 0x0302: // 1011 5th down
 						if(!(button_state & 0x04))
 						{
 //							printf("%1X 1011 5th down\n", temp);
@@ -136,7 +137,7 @@ int main(void)
 							button_state |= 0x04;
 						}
 						break;
-					case 0x0101: // 1010 5th up
+					case 0x0303: // 1010 5th up
 						if(button_state & 0x04)
 						{
 //							printf("%1X 1010 5th up\n", temp);
@@ -144,30 +145,36 @@ int main(void)
 							button_state &= ~0x04;
 						}
 						break;
+
 					case 0x0102: // 1000 wheel right
-						printf("1000 wheel right\n");
+//						printf("1000 wheel right\n");
 						code |= MM_WHEEL_RIGHT;
 						break;
 					case 0x0103: // 1001 wheel left
 						code |= MM_WHEEL_LEFT;
-						printf("1001 wheel left\n");
+//						printf("1001 wheel left\n");
 						break;
 
-					case 0x0200: // 0011 wheel up
+					case 0x0002: // 0011 wheel up
 						code |= MM_WHEEL_UP;
 //						printf("0011 wheel up\n");
 						break;
-					case 0x0201: // 0010 wheel down
+					case 0x0003: // 0010 wheel down
 						code |= MM_WHEEL_DOWN;
 //						printf("0010 wheel down\n");
 						break;
 
-					case 0x0202: // 1111 -> nothing
+					case 0x0000: // 1111 -> nothing
 //						printf("\n");
-//					printf("0x%02x\n", prev_joy0dat & 0x0303);
+//						printf("0x%02x\n", mousedata.joy0dat & 0x0303);
+//						if(!--cnt)
+//						{
+//							cnt = 50;
+							PutStr("bang!\n");
+//						}
 						break;
 					default:
-						printf("unsupported code 0x%02x -> 0x%02X", mousedata.joy0dat & 0x0303, temp);
+						printf("unsupported code 0x%02x -> 0x%02X\n", mousedata.joy0dat & 0x0303, temp);
 //						printf("1/Y %1d; ", (temp & 0x0008) >> 3);
 //						printf("2/X %1d; ", (temp & 0x0004) >> 2);
 //						printf("3YQ %1d; ", (temp & 0x0002) >> 1);
