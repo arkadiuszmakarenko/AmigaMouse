@@ -61,7 +61,6 @@ int main(void)
 	{
 		mousedata.task = FindTask(0);
 		mousedata.sigbit = 1 << intsignal;
-		cnt = 50;
 		AddIntServer(INTB_VERTB, &vertblankint);
 
 		SetTaskPri(mousedata.task, 20); /* same as input.device */
@@ -77,18 +76,13 @@ int main(void)
 			}
 			if (signals & mousedata.sigbit)
 			{
-				temp = mousedata.joy0dat ^ ((mousedata.joy0dat & 0x0202) >> 1);
-				temp &= 0x0303;
-				temp |= (temp & 0x0300) >> 6;
-				temp &= 0x000F;
-				temp ^= 0x000F;
 				code = MM_NOTHING;
-				if(prev_joy0dat != (mousedata.joy0dat & 0x0303))
-				{
+//				if(prev_joy0dat != (mousedata.joy0dat & 0x0303))
+//				{
 //					printf("joy: %04x->%04x -> %1X\n", mousedata.potgo & 0x0303, mousedata.joy0dat & 0x0303, temp);
 //					printf("joy: %04x->%04x -> %1X\n", prev_joy0dat & 0x0303, mousedata.joy0dat & 0x0303, temp);
-					prev_joy0dat = mousedata.joy0dat & 0x0303;
-				}
+//					prev_joy0dat = mousedata.joy0dat & 0x0303;
+//				}
 //				if( (mousedata.joy0dat & 0x0303) != 0x0000)
 //				{
 //					printf("%1X -> ", temp);
@@ -174,6 +168,11 @@ int main(void)
 //						}
 						break;
 					default:
+						temp = mousedata.joy0dat ^ ((mousedata.joy0dat & 0x0202) >> 1);
+						temp &= 0x0303;
+						temp |= (temp & 0x0300) >> 6;
+						temp &= 0x000F;
+						temp ^= 0x000F;
 						printf("unsupported code 0x%02x -> 0x%02X\n", mousedata.joy0dat & 0x0303, temp);
 //						printf("1/Y %1d; ", (temp & 0x0008) >> 3);
 //						printf("2/X %1d; ", (temp & 0x0004) >> 2);

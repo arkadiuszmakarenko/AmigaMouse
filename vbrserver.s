@@ -9,8 +9,7 @@
 
 * Entered with:       A0 == scratch (execpt for highest pri vertb server)
 *  D0 == scratch      A1 == is_Data
-*  D1 == scratch     *A2*== scratch (preserved on stack and restored before exit)
-*                     A5 == vector to interrupt code (scratch)
+*  D1 == scratch      A5 == vector to interrupt code (scratch)
 *                     A6 == scratch
 *
     SECTION CODE
@@ -34,7 +33,7 @@ _VertBServer:
 	MOVE.L	14(A1),A6				; is_Data
 	MOVE.L	#$00000200,D0				; word
 	MOVE.L	#$00000300,D1				; mask
-	JSR		_LVOWritePotgo(A6)		; WritePotgo(word,mask)(d0/d1)
+	JSR	_LVOWritePotgo(A6)		; WritePotgo(word,mask)(d0/d1)
 
 	; Wait a bit.
 	; The Arduino needs to catch the interrupt and reply on the right/middle mouse buttons
@@ -46,7 +45,7 @@ _VertBServer:
 Delay:
 	; cocolino 36,
 	; ez-mouse 25
-	MOVEQ	#30,D1					; Needs testing on a slower Amiga!
+	MOVEQ	#17,D1					; Needs testing on a slower Amiga!
 .wait1
 	MOVE.B	vhposr+1(A0),D0				; Bits 7-0     H8-H1 (horizontal position)
 .wait2
@@ -64,43 +63,30 @@ Delay:
 	MOVE.B 	$BFE001,4(A1)				; Left Mouse ODD CIA (CIA-A)
 ; skiplmouse:
 
-	; Output enable right & middle mouse.  Write 1 to middle
-	; 09    OUTLX   Output enable for Paula (pin 32 for DIL and pin 35 for PLCC) -> enable
-	; 08    DATLX   I/O data Paula (pin 32 for DIL and pin 35 for PLCC)          -> set high
-	MOVE.L	#$00000300,D0				; word
-	MOVE.L	#$00000300,D1				; mask
-	JSR		_LVOWritePotgo(A6)		; WritePotgo(word,mask)(d0/d1)
-
 	; If there was no change on data joy0dat values, no need to signal
 	TST.W	2(A1)
 	BEQ	exit
 
 	;
 	; Signal the main task
+	; delay introduced in code below is enough to confirm reception to MSP
 	;
+	MOVE.L	A1,-(SP)				; preserve A1 on stack
 	MOVE.L 4.W,A6
 	MOVE.L 6(A1),D0					; Signals
 	MOVE.L 10(A1),A1				; Task
-
 	JSR _LVOSignal(A6)
-
-	LEA		_custom,A0
-
-Delay2:
-	MOVEQ	#127,D1					; Needs testing on a slower Amiga!
-.wait3
-	MOVE.B	vhposr+1(A0),D0				; Bits 7-0     H8-H1 (horizontal position)
-.wait4
-	CMP.B	vhposr+1(A0),D0
-	BEQ.B	.wait4
-	DBF	D1,	.wait3
+	MOVE.L	(SP)+,A1				; restore A1 from stack
 
 exit:
+	; Output enable right & middle mouse.  Write 1 to middle
+	; 09    OUTLX   Output enable for Paula (pin 32 for DIL and pin 35 for PLCC) -> enable
+	; 08    DATLX   I/O data Paula (pin 32 for DIL and pin 35 for PLCC)          -> set high
+	MOVE.L	14(A1),A6				; is_Data
+	MOVE.L	#$00000300,D0				; word
+	MOVE.L	#$00000300,D1				; mask
+	JSR	_LVOWritePotgo(A6)			; WritePotgo(word,mask)(d0/d1)
+
 	MOVE.L	$DFF000, A0				; if you install a vertical blank server at priority 10 or greater, you must place custom ($DFF000) in A0 before exiting
 	MOVEQ.L #0,D0					; set Z flag to continue to process other vb-servers
 	RTS
-
-
-skip:
-	MOVE.W	#$0f00, $dff180
-	JMP		exit
