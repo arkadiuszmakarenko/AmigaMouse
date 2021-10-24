@@ -27,6 +27,10 @@ _VertBServer:
 	AND.W	#$100, D0				; mask with BIT8
 	BEQ	exit
 
+	; Save regs for C code before
+	MOVE.W	joy0dat(A0),2(A1)			; Mouse Counters (used now)
+	AND.W	#$0303,	2(A1)				; mask out everything, but the X0,X1, Y0 and Y1
+
 	; Output enable right & middle mouse.  Write 0 to middle
 	; 09    OUTLX   Output enable for Paula (pin 32 for DIL and pin 35 for PLCC) -> enable
 	; 08    DATLX   I/O data Paula (pin 32 for DIL and pin 35 for PLCC)          -> set low
@@ -39,13 +43,10 @@ _VertBServer:
 	; The Arduino needs to catch the interrupt and reply on the right/middle mouse buttons
 	LEA		_custom,A0
 
-	; Save regs for C code before
-	MOVE.W	joy0dat(A0),2(A1)			; Mouse Counters (used now)
-
 Delay:
 	; cocolino 36,
 	; ez-mouse 25
-	MOVEQ	#17,D1					; Needs testing on a slower Amiga!
+	MOVEQ	#18,D1					; Needs testing on a slower Amiga!
 .wait1
 	MOVE.B	vhposr+1(A0),D0				; Bits 7-0     H8-H1 (horizontal position)
 .wait2
@@ -56,7 +57,9 @@ Delay:
 	; Save regs for C code after MMB pulse
 	MOVE.W	potinp(A0),(A1)				; Middle/Right Mouse
 	MOVE.W	joy0dat(A0),D0				; Mouse Counters (used now)
+	AND.W	#$0303,D0				; mask out everything, but the X0,X1, Y0 and Y1
 	EOR.W	D0,2(A1)				; EXOR joy0dat before and after pulse
+	AND.W	#$0303,2(A1)				; mask out everything, but the X0,X1, Y0 and Y1
 
 	; cmp.b #0, D5
 	; BNE skiplmouse
@@ -64,7 +67,6 @@ Delay:
 ; skiplmouse:
 
 	; If there was no change on data joy0dat values, no need to signal
-	ANDI.W	#$0303,2(A1)				; mask out everything else, but the X0,X1, Y0 and Y1
 	TST.W	2(A1)
 	BEQ	exit
 

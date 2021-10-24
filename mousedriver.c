@@ -57,7 +57,7 @@ int code;
 #ifdef DEBUG
 int button_state, prev_joy0dat;
 #endif // DEBUG
-int temp;
+int temp, bang_cnt;
 
 int main(void)
 {
@@ -68,8 +68,15 @@ int main(void)
 		AddIntServer(INTB_VERTB, &vertblankint);
 
 		SetTaskPri(mousedata.task, 20); /* same as input.device */
-		printf("Blabber mouse wheel driver installed.\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
+		printf("Blabber mouse wheel driver installed.\n");
+		printf(__DATE__);
+		printf("; ");
+		printf(__TIME__);
+		printf("\ngcc: ");
+		printf(__VERSION__);
+		printf("\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
 //		printf("DEBUG: NM_WHEEL driver started\n");
+		bang_cnt = 0;
 		while (1)
 		{
 			ULONG signals = Wait (mousedata.sigbit | SIGBREAKF_CTRL_C);
@@ -93,7 +100,7 @@ int main(void)
 					printf("%1X -> ", temp);
 				}
 #endif // DEBUG
-				switch(mousedata.joy0dat & 0x0303)
+				switch(mousedata.joy0dat)// & 0x0303)
 				{                    // YQXQ
 					case 0x0202: // 0x0F MMB pressed
 #ifdef DEBUG
@@ -197,7 +204,7 @@ int main(void)
 						break;
 
 					case 0x0000: // 1111 -> nothing
-						PutStr("bang!\n");
+						printf("bang! (%d)\n", bang_cnt++);
 						break;
 
 					case 0x0001: // 0001
