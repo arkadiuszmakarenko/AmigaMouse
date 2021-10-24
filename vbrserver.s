@@ -64,6 +64,7 @@ Delay:
 ; skiplmouse:
 
 	; If there was no change on data joy0dat values, no need to signal
+	ANDI.W	#$0303,2(A1)				; mask out everything else, but the X0,X1, Y0 and Y1
 	TST.W	2(A1)
 	BEQ	exit
 
