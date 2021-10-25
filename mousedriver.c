@@ -62,7 +62,7 @@ struct IOStdReq   *InputIO;
 struct MsgPort    *InputMP;
 struct InputEvent *MouseEvent;
 struct InputBase  *InputBase;
-struct Potgo      *PotgoBase;
+struct PotgoBase  *PotgoBase;
 BYTE intsignal;
 int code;
 #ifdef DEBUG
@@ -100,7 +100,13 @@ int main(void)
 			if (signals & mousedata.sigbit)
 			{
 				code = MM_NOTHING;
+
+				SetSignal(0L,mousedata.sigbit);
 #ifdef DEBUG
+				temp = mousedata.joy0dat ^ ((mousedata.joy0dat & 0x0202) >> 1);
+				temp &= 0x0303;
+				temp |= (temp & 0x0300) >> 6;
+				temp &= 0x000F;
 				if(prev_joy0dat != (mousedata.joy0dat & 0x0303))
 				{
 					printf("joy: %04x->%04x -> %1X\n", mousedata.potgo & 0x0303, mousedata.joy0dat & 0x0303, temp);
@@ -241,10 +247,12 @@ int main(void)
 						break;
 
 					default:
+#ifndef DEBUG
 						temp = mousedata.joy0dat ^ ((mousedata.joy0dat & 0x0202) >> 1);
 						temp &= 0x0303;
 						temp |= (temp & 0x0300) >> 6;
 						temp &= 0x000F;
+#endif // nDEBUG
 						printf("unsupported code 0x%04x -> 0x%02X -> %1d%1d%1d%1d", mousedata.joy0dat & 0x0303, temp,
 							((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0));
 						break;
@@ -296,6 +304,7 @@ int AllocResources()
 #ifdef DEBUG
 							PutStr("Debug: potgo.resource opened.\n");
 #endif // DEBUG
+							PotgoBase = (struct PotgoBase *)mousedata.potgoResource;
 							potbits = AllocPotBits(OUTLX | DATLX);
 							if(potbits == OUTLX | DATLX)
 							{

@@ -1,5 +1,5 @@
-CC=/opt/gnu-6.5.0b/bin/m68k-amigaos-gcc
-#CC=/opt/m68k-amigaos/bin/m68k-amigaos-gcc
+#CC=/opt/gnu-6.5.0b/bin/m68k-amigaos-gcc
+CC=/opt/m68k-amigaos/bin/m68k-amigaos-gcc
 CFLAGS=-O2 -noixemul
 VASM=vasmm68k_mot
 INCLUDE=/opt/gnu-6.5.0b/m68k-amigaos/ndk-include/
