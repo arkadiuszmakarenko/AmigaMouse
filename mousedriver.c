@@ -25,6 +25,15 @@
 #define MM_FIVETH_DOWN 9
 #define MM_FIVETH_UP 10
 
+#define OUTRY 1L<<15
+#define DATRY 1L<<14
+#define OUTRX 1L<<13
+#define DATRX 1L<<12
+#define OUTLY 1L<<11
+#define DATLY 1L<<10
+#define OUTLX 1L<<9
+#define DATLX 1L<<8
+
 extern void VertBServer();  /* proto for asm interrupt server */
 
 struct {
@@ -58,6 +67,7 @@ int code;
 int button_state, prev_joy0dat;
 #endif // DEBUG
 int temp, bang_cnt;
+ULONG potbits;
 
 int main(void)
 {
@@ -266,7 +276,13 @@ int AllocResources()
 						InputBase = (struct InputBase *)InputIO->io_Device;
 						if (mousedata.potgoResource = OpenResource("potgo.resource"))
 						{
-							return 1;
+							potbits = AllocPotBits(OUTLX | DATLX);
+							if(potbits == OUTLX | DATLX)
+							{
+								return 1;
+							}
+							else
+								PutStr("Error: Could not allocate potgo output MMB");
 						}
 						else
 							PutStr("Error: Could not open potgo.resource\n");
@@ -290,6 +306,7 @@ int AllocResources()
 
 void FreeResources()
 {
+	FreePotBits(OUTLX | DATLX);
 	if (InputIO)
 	{
 		CloseDevice((struct IORequest *)InputIO);
