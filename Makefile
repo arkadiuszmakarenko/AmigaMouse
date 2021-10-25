@@ -1,10 +1,13 @@
-CC=/opt/m68k-amigaos/bin/m68k-amigaos-gcc
+CC=/opt/gnu-6.5.0b/bin/m68k-amigaos-gcc
+#CC=/opt/m68k-amigaos/bin/m68k-amigaos-gcc
 CFLAGS=-O2 -noixemul
-INCLUDE=/opt/m68k-amigaos/m68k-amigaos/sys-include/
 VASM=vasmm68k_mot
+INCLUDE=/opt/gnu-6.5.0b/m68k-amigaos/ndk-include/
+#INCLUDE=/opt/m68k-amigaos/m68k-amigaos/sys-include/
+#/opt/m68k-amigaos/m68k-amigaos/os-include/
 #VASMFLAGS=-quiet -Fhunk -phxass -I $(INCLUDE) /opt/amigaos/os-include/
 #VASMFLAGS=-quiet -Fhunk -phxass -I /opt/amigaos/os-include/
-VASMFLAGS=-quiet -Fhunk -phxass -I /opt/gnu-6.5.0b/m68k-amigaos/ndk-include/
+VASMFLAGS=-quiet -Fhunk -phxass -I $(INCLUDE)
 DEPS=
 
 %.o: %.s $(DEPS)

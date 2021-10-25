@@ -1,16 +1,14 @@
-# AmigaPS2Mouse
+# DIY Amiga scroll wheel mouse driver
 
-Very much work-in-progress PS/2 Amiga Mouse driver.
+For Arduino based PS/2 Amiga mouse driver please refer to the original repository: https://github.com/paulroberthill/AmigaPS2Mouse
 
-Uses an Arduino to translate PS/2 mouse protocol to the Amiga mouse port.
-The middle mouse button us used to communicate extra information - the scroll wheel and the status of the middle button.
-
+Altough majority of functionality is taken over from the original design, it does not support PS/2 Arduino based controller, but MSP430 based mouse controller that uses AVAGO sensor. For microcontroller please refer to the external repository: https://github.com/sq7bti/AVAGO/
 
 NOTES
 =====
 
 The Middle mouse button is emulated, it does not use the real middle mouse button pin.
-This is because this pin is used for communication between the Amiga and Arduino for 
+This is because this pin is used for communication between the Amiga and a mouse for 
 scroll wheel etc.
 
 
@@ -33,22 +31,8 @@ http://eab.abime.net/showthread.php?p=1178490
 
 
 
-ERROR CODES
-===========
-Errors will be shown by flashing the onboard LED:
-
-* 2 = Error resetting PS/2 mouse
-* 3 = Error changing sample rate (non-intellimouse?)
-* 4 = Error reading ID (non-intellimouse?)
-* 5 = Unable to begin PS2 protocol
-* 6 = Unable to enable Data Reporting
-
-
-
 OUTSTANDING ISSUES
 ==================
-Scroll wheel does not work if the left or right mouse button is held down.
-This is not a problem for the right mouse but would be nice for the left.
-Do other mouse adapters support this?
 
+Mouse controller sends code through four quadrature signals. Synchronisation with Amiga driver occurs at the falling edge of MMB pin.
 

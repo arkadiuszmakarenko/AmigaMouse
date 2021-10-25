@@ -5,6 +5,7 @@
 #include <clib/exec_protos.h>
 #include <clib/input_protos.h>
 #include <clib/dos_protos.h>
+#include <clib/potgo_protos.h>
 #include <dos/dos.h>
 #include <stdio.h>
 
@@ -12,7 +13,7 @@
 //#define NM_WHEEL_UP 0x7A
 //#define NM_WHEEL_DOWN 0x7B
 
-//#define DEBUG
+#define DEBUG
 #define MM_NOTHING 0
 #define MM_WHEEL_DOWN 1
 #define MM_WHEEL_UP 2
@@ -61,6 +62,7 @@ struct IOStdReq   *InputIO;
 struct MsgPort    *InputMP;
 struct InputEvent *MouseEvent;
 struct InputBase  *InputBase;
+struct Potgo      *PotgoBase;
 BYTE intsignal;
 int code;
 #ifdef DEBUG
@@ -264,21 +266,42 @@ int AllocResources()
 {
 	if (intsignal = AllocSignal (-1))
 	{
+#ifdef DEBUG
+		PutStr("Debug: Signal allocated.\n");
+#endif // DEBUG
 		if (InputMP = CreateMsgPort())
 		{
+#ifdef DEBUG
+			PutStr("Debug: Message port created.\n");
+#endif // DEBUG
 			if (MouseEvent = AllocMem(sizeof(struct InputEvent),MEMF_PUBLIC))
 			{
+#ifdef DEBUG
+				PutStr("Debug: Memory for MouseEvent allocated.\n");
+#endif // DEBUG
 				if (InputIO = CreateIORequest(InputMP,sizeof(struct IOStdReq)))
 				{
-					if (!OpenDevice("input.device",NULL,
-								(struct IORequest *)InputIO,NULL))
+#ifdef DEBUG
+					PutStr("Debug: CIORequest created.\n");
+#endif // DEBUG
+					if (!OpenDevice("input.device",0UL,
+								(struct IORequest *)InputIO,0UL))
 					{
+#ifdef DEBUG
+						PutStr("Debug: input.device opened.\n");
+#endif // DEBUG
 						InputBase = (struct InputBase *)InputIO->io_Device;
 						if (mousedata.potgoResource = OpenResource("potgo.resource"))
 						{
+#ifdef DEBUG
+							PutStr("Debug: potgo.resource opened.\n");
+#endif // DEBUG
 							potbits = AllocPotBits(OUTLX | DATLX);
 							if(potbits == OUTLX | DATLX)
 							{
+#ifdef DEBUG
+								PutStr("Debug: potgo output MMB allocated.");
+#endif // DEBUG
 								return 1;
 							}
 							else
