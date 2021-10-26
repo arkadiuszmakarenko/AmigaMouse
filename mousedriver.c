@@ -13,7 +13,7 @@
 //#define NM_WHEEL_UP 0x7A
 //#define NM_WHEEL_DOWN 0x7B
 
-#define DEBUG
+//#define DEBUG
 #define MM_NOTHING 0
 #define MM_WHEEL_DOWN 1
 #define MM_WHEEL_UP 2
@@ -64,12 +64,12 @@ struct InputEvent *MouseEvent;
 struct InputBase  *InputBase;
 struct PotgoBase  *PotgoBase;
 BYTE intsignal;
-int code;
-#ifdef DEBUG
-int button_state, prev_joy0dat;
-#endif // DEBUG
+int code,joydat;
 int temp, bang_cnt;
 ULONG potbits;
+#ifdef DEBUG
+int button_state;
+#endif // DEBUG
 
 int main(void)
 {
@@ -92,33 +92,25 @@ int main(void)
 		while (1)
 		{
 			ULONG signals = Wait (mousedata.sigbit | SIGBREAKF_CTRL_C);
-			if (signals & SIGBREAKF_CTRL_C)
-			{
-				PutStr("Exiting\n");
-				break;
-			}
 			if (signals & mousedata.sigbit)
 			{
 				code = MM_NOTHING;
 
-				SetSignal(0L,mousedata.sigbit);
+				joydat = mousedata.joy0dat;
 #ifdef DEBUG
-				temp = mousedata.joy0dat ^ ((mousedata.joy0dat & 0x0202) >> 1);
+				temp = joydat ^ ((joydat & 0x0202) >> 1);
 				temp &= 0x0303;
 				temp |= (temp & 0x0300) >> 6;
 				temp &= 0x000F;
-				if(prev_joy0dat != (mousedata.joy0dat & 0x0303))
-				{
-					printf("joy: %04x->%04x -> %1X\n", mousedata.potgo & 0x0303, mousedata.joy0dat & 0x0303, temp);
-					printf("joy: %04x->%04x -> %1X\n", prev_joy0dat & 0x0303, mousedata.joy0dat & 0x0303, temp);
-					prev_joy0dat = mousedata.joy0dat & 0x0303;
-				}
-				if( (mousedata.joy0dat & 0x0303) != 0x0000)
-				{
-					printf("%1X -> ", temp);
-				}
+
+				printf("joy: %04x -> %1X\n", joydat & 0x0303, temp);
+
+//				if( joydat != 0x0000)
+//				{
+//					printf("%1X -> ", temp);
+//				}
 #endif // DEBUG
-				switch(mousedata.joy0dat)// & 0x0303)
+				switch(joydat)// & 0x0303)
 				{                    // YQXQ
 					case 0x0202: // 0x0F MMB pressed
 #ifdef DEBUG
@@ -248,18 +240,24 @@ int main(void)
 
 					default:
 #ifndef DEBUG
-						temp = mousedata.joy0dat ^ ((mousedata.joy0dat & 0x0202) >> 1);
+						temp = joydat ^ ((joydat & 0x0202) >> 1);
 						temp &= 0x0303;
 						temp |= (temp & 0x0300) >> 6;
 						temp &= 0x000F;
 #endif // nDEBUG
-						printf("unsupported code 0x%04x -> 0x%02X -> %1d%1d%1d%1d", mousedata.joy0dat & 0x0303, temp,
+						printf("unsupported code 0x%04x -> 0x%02X -> %1d%1d%1d%1d", joydat & 0x0303, temp,
 							((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0));
 						break;
 				}
 
-				CreateMouseEvents(code);
+				if(code)
+					CreateMouseEvents(code);
 
+			}
+			if (signals & SIGBREAKF_CTRL_C)
+			{
+				PutStr("Exiting\n");
+				break;
 			}
 		}
 	} else {
@@ -352,10 +350,6 @@ void FreeResources()
 
 void CreateMouseEvents(int t)
 {
-	if (t == 0)
-	{
-		return;
-	}
 	MouseEvent->ie_EventAddress = NULL;
 	MouseEvent->ie_NextEvent = NULL;
 	MouseEvent->ie_Class = IECLASS_RAWKEY;
