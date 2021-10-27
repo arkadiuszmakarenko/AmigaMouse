@@ -32,20 +32,17 @@ _VertBServer:
 	; if not wait for another round
 	;
 	;MOVE.L	A1,-(SP)				; preserve A1 on stack
-	;MOVE.L 4.W,A6
-	;MOVE.L #$0,D0					; newSignals
-	;MOVE.L #$0,D1					; signalsMask
-	;MOVE.L 10(A1),A1				; Task
-	;JSR _LVOSetSignal(A6)
+	MOVE.L	A1,A5					; preserve A1 in A5
+	MOVE.L 4.W,A6
+	MOVE.L #$0,D0					; newSignals
+	MOVE.L #$0,D1					; signalsMask
+	MOVE.L 10(A1),A1				; Task
+	JSR _LVOSetSignal(A6)
 	;MOVE.L	(SP)+,A1				; restore A1 from stack
+	MOVE.L	A5,A1					; restore A1 from A5
 
-	;CMP.L 6(A1),D1					; check if the signal is still there
-	;BEQ.s	abort
-
-	; Save regs for C code before
-	MOVE.W	joy0dat(A0),A5				; Mouse Counters (used now)
-	;AND.W	#$0303,	D0				; mask out everything, but the X0,X1, Y0 and Y1
-	;MOVE.W	D0,A5					; stash away
+	CMP.L 6(A1),D1					; check if the signal is still there
+	BEQ.s	abort
 
 	; Output enable right & middle mouse.  Write 0 to middle
 	; 09    OUTLX   Output enable for Paula (pin 32 for DIL and pin 35 for PLCC) -> enable
@@ -55,9 +52,14 @@ _VertBServer:
 	MOVE.L	#$00000300,D1				; mask
 	JSR	_LVOWritePotgo(A6)		; WritePotgo(word,mask)(d0/d1)
 
+	; Save regs for C code before
+	LEA		_custom,A0
+	MOVE.W	joy0dat(A0),A5				; Mouse Counters (used now)
+	;AND.W	#$0303,	D0				; mask out everything, but the X0,X1, Y0 and Y1
+	;MOVE.W	D0,A5					; stash away
+
 	; Wait a bit.
 	; MSP430 controller needs to catch the interrupt and reply on the right/middle mouse buttons
-	LEA		_custom,A0
 
 Delay:
 	; cocolino 36,
@@ -82,6 +84,15 @@ Delay:
 	TST.W	D1
 	BEQ	exit
 
+	CMP.L #$0001,D1
+	BEQ	exit
+	CMP.L #$0003,D1
+	BEQ	exit
+	CMP.L #$0100,D1
+	BEQ	exit
+	CMP.L #$0300,D1
+	BEQ	exit
+
 	MOVE.B 	$BFE001,4(A1)				; Left Mouse ODD CIA (CIA-A)
 	MOVE.W D1,2(A1)
 	MOVE.W	potinp(A0),(A1)				; Middle/Right Mouse
@@ -89,12 +100,14 @@ Delay:
 	; Signal the main task
 	; delay introduced in code below is enough to confirm reception to MSP430
 	;
-	MOVE.L	A1,-(SP)				; preserve A1 on stack
+	;MOVE.L	A1,-(SP)				; preserve A1 on stack
+	MOVE.L	A1,A5					; preserve A1 in A5
 	MOVE.L 4.W,A6
 	MOVE.L 6(A1),D0					; Signals
 	MOVE.L 10(A1),A1				; Task
 	JSR _LVOSignal(A6)
-	MOVE.L	(SP)+,A1				; restore A1 from stack
+	;MOVE.L	(SP)+,A1				; restore A1 from stack
+	MOVE.L	A5,A1					; restore A1 from A5
 
 exit:
 	; Output enable right & middle mouse.  Write 1 to middle

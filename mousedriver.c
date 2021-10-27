@@ -217,26 +217,20 @@ int main(void)
 						printf("bang! (%d)\n", bang_cnt++);
 						break;
 
-					case 0x0001: // 0001
 #ifdef DEBUG
+					case 0x0001: // 0001
 						printf("0001\n");
-#endif // DEBUG
 						break;
 					case 0x0003: // 0010
-#ifdef DEBUG
 						printf("0010\n");
-#endif // DEBUG
 						break;
 					case 0x0100: // 0100
-#ifdef DEBUG
 						printf("0100\n");
-#endif // DEBUG
 						break;
 					case 0x0300: // 1000
-#ifdef DEBUG
 						printf("1000\n");
-#endif // DEBUG
 						break;
+#endif // DEBUG
 
 					default:
 #ifndef DEBUG
@@ -245,7 +239,7 @@ int main(void)
 						temp |= (temp & 0x0300) >> 6;
 						temp &= 0x000F;
 #endif // nDEBUG
-						printf("unsupported code 0x%04x -> 0x%02X -> %1d%1d%1d%1d", joydat & 0x0303, temp,
+						printf("unsupported code 0x%04x -> %1d%1d%1d%1d\n", joydat & 0x0303,
 							((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0));
 						break;
 				}
