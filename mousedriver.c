@@ -97,6 +97,7 @@ int main(void)
 				code = MM_NOTHING;
 
 				joydat = mousedata.joy0dat;
+				mousedata.joy0dat &= ~(0x0303);
 #ifdef DEBUG
 				temp = joydat ^ ((joydat & 0x0202) >> 1);
 				temp &= 0x0303;
@@ -245,7 +246,10 @@ int main(void)
 				}
 
 				if(code)
+				{
 					CreateMouseEvents(code);
+					//mousedata.joy0dat &= ~(0x0303);
+				}
 
 			}
 			if (signals & SIGBREAKF_CTRL_C)
