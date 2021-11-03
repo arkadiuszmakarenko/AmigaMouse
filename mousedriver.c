@@ -166,43 +166,33 @@ int wheel_code(int joydat)
 {
 int c = MM_NOTHING;
   switch(joydat & 0x0303)
-  {                    // YQXQ
-    case 0x0202: // 0x0F MMB pressed
-        c = MM_MIDDLEMOUSE_DOWN;
-      break;
-    case 0x0203: // 0x0E middle button up
-        c = MM_MIDDLEMOUSE_UP;
-      break;
-    case 0x0002: // 0x0C 4th down
-        c = MM_FOURTH_DOWN;
-      break;
-    case 0x0102: // 0x0D 4th up
-        c = MM_FOURTH_UP;
-      break;
-    case 0x0301: // 0x0B 5th down
-        c = MM_FIVETH_DOWN;
-      break;
-    case 0x0101: // 0x0A 5th up
-        c = MM_FIVETH_UP;
-      break;
-    case 0x0303: // 0x07 wheel right
-        c = MM_WHEEL_RIGHT;
-      break;
-    case 0x0302: // 0x06 wheel left
-        c = MM_WHEEL_LEFT;
-      break;
-    case 0x0200: // 0x03 wheel up
-        c = MM_WHEEL_UP;
-      break;
-    case 0x0201: // 0x02 wheel down
-        c = MM_WHEEL_DOWN;
-      break;
+  {
+/*    0203 | 1011 |1  1  1  0 |1110|E|1101|D| 3 | | CODE_MMB_DOWN
+    0201 | 1001 |1  1  0  1 |1101|D|1110|E| 3 | | CODE_MMB_UP
+    0200 | 1000 |1  1  0  0 |1100|C|1100|C| 2 | | CODE_4TH_DOWN
+    0302 | 1110 |1  0  1  1 |1011|B|1011|B| 3 | | CODE_WHEEL_UP
+    0303 | 1111 |1  0  1  0 |1010|A|1001|9| 2 |*| CODE_4TH_UP
+    0301 | 1101 |1  0  0  1 |1001|9|1010|A| 2 |*| CODE_WHEEL_LEFT
+    0102 | 0110 |0  1  1  1 |0111|7|0111|7| 3 | | CODE_WHEEL_DOWN
+    0103 | 0111 |0  1  1  0 |0110|6|0101|5| 2 |*| CODE_WHEEL_RIGHT
+    0101 | 0101 |0  1  0  1 |0101|5|0110|6| 2 |*| CODE_5TH_UP
+    0002 | 0010 |0  0  1  1 |0011|3|0011|3| 2 | | CODE_5TH_DOWN */
 
-    case 0x0000: // 1111 -> nothing
-        printf("bang! (%d)\n", bang_cnt++);
-      break;
+    case 0x0203: c = MM_MIDDLEMOUSE_DOWN; break;
+    case 0x0201: c = MM_MIDDLEMOUSE_UP;   break;
+    case 0x0200: c = MM_FOURTH_DOWN;      break;
+    case 0x0302: c = MM_WHEEL_UP;         break;
+    case 0x0303: c = MM_FOURTH_UP;        break;
+    case 0x0301: c = MM_WHEEL_LEFT;       break;
+    case 0x0102: c = MM_WHEEL_DOWN;       break;
+    case 0x0103: c = MM_WHEEL_RIGHT;      break;
+    case 0x0101: c = MM_FIVETH_UP;        break;
+    case 0x0002: c = MM_FIVETH_DOWN;      break;
 
 #ifdef DEBUG
+    case 0x0000: // 1111 -> nothing
+      printf("bang! (%d)\n", bang_cnt++);
+      break;
     case 0x0001: // 0001
       printf("0001\n");
       break;
@@ -216,10 +206,6 @@ int c = MM_NOTHING;
       printf("1000\n");
       break;
 #endif // DEBUG
-
-    case 0x0103: // 0110 - UAE problem?
-        //printf("0110\n");
-      break;
 
     default:
 #ifndef DEBUG
