@@ -117,9 +117,11 @@ int main(void)
           temp = msgdata >> 4; // ^ ((msgdata & 0x22) >> 1);
           msgdata &= 0x0F;
 
+#ifdef DEBUG
           printf("%1d%1d%1d%1d -> %1d%1d%1d%1d\n",
           ((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0),
           ((msgdata & 0x0008) >> 3), ((msgdata & 0x0004) >> 2), ((msgdata & 0x0002) >> 1), ((msgdata & 0x0001) >> 0));
+#endif // DEBUG
 
           // detect accidental change on the data lines
           // only accept the expected reaction of MSP controller
@@ -153,8 +155,7 @@ int wheel_code(int joydat)
   int c = MM_NOTHING;
   switch(joydat & 0x0F)
   {
-/*
-    0x23 | 1011 |1  1  1  0 |1110|E|1101|D| 3 | | CODE_MMB_DOWN
+/*  0x23 | 1011 |1  1  1  0 |1110|E|1101|D| 3 | | CODE_MMB_DOWN
     0x21 | 1001 |1  1  0  1 |1101|D|1110|E| 3 | | CODE_MMB_UP
     0x20 | 1000 |1  1  0  0 |1100|C|1100|C| 2 | | CODE_4TH_DOWN
     0x32 | 1110 |1  0  1  1 |1011|B|1011|B| 3 | | CODE_WHEEL_UP
