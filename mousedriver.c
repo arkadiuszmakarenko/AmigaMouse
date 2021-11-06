@@ -15,7 +15,7 @@
 
 #define VERSTAG "\0$VER: Blabber mouse driver 0.2.0 ("__DATE__")"
 
-#define DEBUG
+//#define DEBUG
 #define MM_NOTHING 0
 #define MM_WHEEL_DOWN 1
 #define MM_WHEEL_UP 2
@@ -112,13 +112,18 @@ int main(void)
         while(mousedata.head != mousedata.tail)
         {
           msgdata = mousedata.codes[mousedata.tail];
-          msgdata = msgdata ^ ((msgdata & 0xAA) >> 1);
+          //msgdata = msgdata ^ ((msgdata & 0xAA) >> 1);
 
           temp = msgdata >> 4; // ^ ((msgdata & 0x22) >> 1);
           msgdata &= 0x0F;
 
+          printf("%1d%1d%1d%1d -> %1d%1d%1d%1d\n",
+          ((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0),
+          ((msgdata & 0x0008) >> 3), ((msgdata & 0x0004) >> 2), ((msgdata & 0x0002) >> 1), ((msgdata & 0x0001) >> 0));
+
           // detect accidental change on the data lines
-					if(msgdata != temp)
+          // only accept the expected reaction of MSP controller
+					if(!temp && msgdata)
             CreateMouseEvents(wheel_code(msgdata));
 
           mousedata.codes[mousedata.tail] = 0;
@@ -160,9 +165,9 @@ int wheel_code(int joydat)
     0x11 | 0101 |0  1  0  1 |0101|5|0110|6| 2 |*| CODE_5TH_UP
     0x02 | 0010 |0  0  1  1 |0011|3|0011|3| 2 | | CODE_5TH_DOWN */
 
-    case 0x0D: //0x23:
+    case 0x0E: //0x23:
       c = MM_MIDDLEMOUSE_DOWN; break;
-    case 0x0E: //0x21:
+    case 0x0D: //0x21:
       c = MM_MIDDLEMOUSE_UP;   break;
     case 0x0C: //0x20:
       c = MM_FOURTH_DOWN;
@@ -170,18 +175,18 @@ int wheel_code(int joydat)
       break;
     case 0x0B: //0x32:
       c = MM_WHEEL_UP;         break;
-    case 0x09: //0x33:
+    case 0x0A: //0x33:
       if(button_state & 0x01)
         c = MM_FOURTH_UP;
       button_state &= ~0x01;
       break;
-    case 0x0A: //0x31:
+    case 0x09: //0x31:
       c = MM_WHEEL_LEFT;       break;
     case 0x07: //0x12:
       c = MM_WHEEL_DOWN;       break;
-    case 0x05: //0x13:
+    case 0x06: //0x13:
       c = MM_WHEEL_RIGHT;      break;
-    case 0x06: //0x11:
+    case 0x05: //0x11:
       if(button_state & 0x02)
         c = MM_FIVETH_UP;
       button_state &= ~0x02;
@@ -216,8 +221,8 @@ int wheel_code(int joydat)
       //temp |= (temp & 0x30) >> 2;
       //temp &= 0x0F;
 #endif // nDEBUG
-//      printf("unsupported code 0x%02x -> %1d%1d%1d%1d\n", joydat & 0x0F,
-//        ((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0));
+      printf("unsupported code 0x%02x -> %1d%1d%1d%1d\n", joydat & 0x0F,
+        ((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0));
       break;
   }
   return c;

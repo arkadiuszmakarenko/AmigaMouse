@@ -80,36 +80,38 @@ Delay:
 	;TST.W	D1
 	BEQ	exit
 
-	;CMP.L #$0001,D1				; 0010
-	;BEQ	exit
-	;CMP.L #$0003,D1       ; 0001
-	;BEQ	exit
-	;CMP.L #$0100,D1				; 0100
-	;BEQ	exit
-	;CMP.L #$0300,D1				; 1000
-	;BEQ	exit
-	;CMP.L #$0202,D1				; 1111
-	;BEQ	exit
+	CMP.L #$0001,D1				; 0010
+	BEQ	exit
+	CMP.L #$0003,D1       ; 0001
+	BEQ	exit
+	CMP.L #$0100,D1				; 0100
+	BEQ	exit
+	CMP.L #$0300,D1				; 1000
+	BEQ	exit
+	CMP.L #$0202,D1				; 1111
+	BEQ	exit
 
 	ROR.b #$2,D1								; move position 0 and 1 at the position 6 and 7
 	LSR.w #$6,D1								; move positino 9 through 7 down to 3:0
 	MOVEQ	#0,D0									; just in case clear entire D0
 	MOVE.b	md_head(A1),D0			; get the current head counter
 	OR.b D1,md_codes(A1,D0.w)		; place current code (bits 0x0003) at the head position
-	;AND.b	#$0A,D1								; mask out x1 and y1
-	;LSR.b D1										; shift them over to position of x0 and y0
-	;EOR.b D1,md_codes(A1,D0.w)	; xor x0 and y0 with x1 and y1
+	AND.b	#$0A,D1								; mask out x1 and y1
+	LSR.b D1										; shift them over to position of x0 and y0
+	EOR.b D1,md_codes(A1,D0.w)	; xor x0 and y0 with x1 and y1
 
 	;
 	; Signal the main task
 	; delay introduced in code below is enough to confirm reception to MSP430
 	;
+	MOVE.L	A5,-(SP)						; preserve A1 in the stack
 	MOVE.L	A1,-(SP)						; preserve A1 in the stack
 	MOVE.L 4.W,A6						; ExecBase
 	MOVE.L md_sigbit(A1),D0					; is_Data->sigbit
 	MOVE.L md_Task(A1),A1				; is_Data->task
 	JSR _LVOSignal(A6)
 	MOVE.L	(SP)+,A1					; restore A1 from the stack
+	MOVE.L	(SP)+,A5					; restore A1 from the stack
 
 	; Save regs for C code after MMB pulse
 	LEA		_custom,A0						; restore A0
@@ -125,9 +127,9 @@ Delay:
 	MOVEQ	#0,D0								; just in case clear entire D0
 	MOVE.b	md_head(A1),D0		; get the current head counter
 	OR.b D1,md_codes(A1,D0.w)	; place current code (bits 0x0003) at the head position
-	;AND.b	#$A0,D1
-	;LSR.b D1
-	;EOR.b D1,md_codes(A1,D0.w)
+	AND.b	#$A0,D1
+	LSR.b D1
+	EOR.b D1,md_codes(A1,D0.w)
 
 	ADD.b	#$1,md_head(A1)							; increment message counter
 
