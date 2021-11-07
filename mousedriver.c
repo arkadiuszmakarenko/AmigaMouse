@@ -79,7 +79,64 @@ UWORD start_line;
 
 STRPTR ver = (STRPTR)VERSTAG;
 
-int wheel_code(int);
+/*  0x23 | 1011 |1  1  1  0 |1110|E|1101|D| 3 | | CODE_MMB_DOWN
+    0x21 | 1001 |1  1  0  1 |1101|D|1110|E| 3 | | CODE_MMB_UP
+    0x20 | 1000 |1  1  0  0 |1100|C|1100|C| 2 | | CODE_4TH_DOWN
+    0x32 | 1110 |1  0  1  1 |1011|B|1011|B| 3 | | CODE_WHEEL_UP
+    0x33 | 1111 |1  0  1  0 |1010|A|1001|9| 2 |*| CODE_4TH_UP
+    0x31 | 1101 |1  0  0  1 |1001|9|1010|A| 2 |*| CODE_WHEEL_LEFT
+    0x12 | 0110 |0  1  1  1 |0111|7|0111|7| 3 | | CODE_WHEEL_DOWN
+    0x13 | 0111 |0  1  1  0 |0110|6|0101|5| 2 |*| CODE_WHEEL_RIGHT
+    0x11 | 0101 |0  1  0  1 |0101|5|0110|6| 2 |*| CODE_5TH_UP
+    0x02 | 0010 |0  0  1  1 |0011|3|0011|3| 2 | | CODE_5TH_DOWN */
+
+unsigned int mouse_codes[] = {  MM_NOTHING, // 0
+                                MM_NOTHING, // 1
+                                MM_NOTHING, // 2
+                                MM_FIVETH_DOWN, // 3
+                                MM_NOTHING, // 4
+                                MM_FIVETH_UP, // 5
+                                MM_WHEEL_RIGHT, // 6
+                                MM_WHEEL_DOWN, // 7
+                                MM_NOTHING, // 8
+                                MM_WHEEL_LEFT, // 9
+                                MM_FOURTH_UP, // A
+                                MM_WHEEL_UP, // B
+                                MM_FOURTH_DOWN, // C
+                                MM_MIDDLEMOUSE_UP, // D
+                                MM_MIDDLEMOUSE_DOWN, // E
+                                MM_NOTHING // F
+};
+
+int mouse_code(int joydat)
+{
+  int c = mouse_codes[joydat];
+  if(c == MM_FOURTH_DOWN) {
+    if(button_state & 0x01)
+      c = MM_NOTHING;
+    else
+      button_state |= 0x01;
+  }
+  if(c == MM_FOURTH_UP) {
+    if(button_state & 0x01)
+      button_state &= ~0x01;
+    else
+      c = MM_NOTHING;
+  }
+  if(c == MM_FIVETH_DOWN) {
+    if(button_state & 0x02)
+      c = MM_NOTHING;
+    else
+      button_state |= 0x02;
+  }
+  if(c == MM_FIVETH_UP) {
+    if(button_state & 0x02)
+      button_state &= ~0x02;
+    else
+      c = MM_NOTHING;
+  }
+  return c;
+}
 
 int main(void)
 {
@@ -126,7 +183,7 @@ int main(void)
           // detect accidental change on the data lines
           // only accept the expected reaction of MSP controller
 					if(!temp && msgdata)
-            CreateMouseEvents(wheel_code(msgdata));
+            CreateMouseEvents((msgdata));
 
           mousedata.codes[mousedata.tail] = 0;
           ++mousedata.tail;
@@ -148,85 +205,6 @@ int main(void)
 	FreeResources();
 
 	return 0;
-}
-
-int wheel_code(int joydat)
-{
-  int c = MM_NOTHING;
-  switch(joydat & 0x0F)
-  {
-/*  0x23 | 1011 |1  1  1  0 |1110|E|1101|D| 3 | | CODE_MMB_DOWN
-    0x21 | 1001 |1  1  0  1 |1101|D|1110|E| 3 | | CODE_MMB_UP
-    0x20 | 1000 |1  1  0  0 |1100|C|1100|C| 2 | | CODE_4TH_DOWN
-    0x32 | 1110 |1  0  1  1 |1011|B|1011|B| 3 | | CODE_WHEEL_UP
-    0x33 | 1111 |1  0  1  0 |1010|A|1001|9| 2 |*| CODE_4TH_UP
-    0x31 | 1101 |1  0  0  1 |1001|9|1010|A| 2 |*| CODE_WHEEL_LEFT
-    0x12 | 0110 |0  1  1  1 |0111|7|0111|7| 3 | | CODE_WHEEL_DOWN
-    0x13 | 0111 |0  1  1  0 |0110|6|0101|5| 2 |*| CODE_WHEEL_RIGHT
-    0x11 | 0101 |0  1  0  1 |0101|5|0110|6| 2 |*| CODE_5TH_UP
-    0x02 | 0010 |0  0  1  1 |0011|3|0011|3| 2 | | CODE_5TH_DOWN */
-
-    case 0x0E: //0x23:
-      c = MM_MIDDLEMOUSE_DOWN; break;
-    case 0x0D: //0x21:
-      c = MM_MIDDLEMOUSE_UP;   break;
-    case 0x0C: //0x20:
-      c = MM_FOURTH_DOWN;
-      button_state |= 0x01;
-      break;
-    case 0x0B: //0x32:
-      c = MM_WHEEL_UP;         break;
-    case 0x0A: //0x33:
-      if(button_state & 0x01)
-        c = MM_FOURTH_UP;
-      button_state &= ~0x01;
-      break;
-    case 0x09: //0x31:
-      c = MM_WHEEL_LEFT;       break;
-    case 0x07: //0x12:
-      c = MM_WHEEL_DOWN;       break;
-    case 0x06: //0x13:
-      c = MM_WHEEL_RIGHT;      break;
-    case 0x05: //0x11:
-      if(button_state & 0x02)
-        c = MM_FIVETH_UP;
-      button_state &= ~0x02;
-      break;
-    case 0x03: //0x02:
-      c = MM_FIVETH_DOWN;
-      button_state |= 0x02;
-      break;
-
-#ifdef DEBUG
-    case 0x00: // 1111 -> nothing
-      printf("bang! (%d)\n", bang_cnt++);
-      break;
-    case 0x02: //0x01: // 0001
-      printf("0001\n");
-      break;
-    case 0x01: //0x03: // 0010
-      printf("0010\n");
-      break;
-    case 0x04: //0x10: // 0100
-      printf("0100\n");
-      break;
-    case 0x08: //0x30: // 1000
-      printf("1000\n");
-      break;
-#endif // DEBUG
-
-    default:
-#ifndef DEBUG
-      temp = joydat; // ^ ((joydat & 0x22) >> 1);
-      //temp &= 0x33;
-      //temp |= (temp & 0x30) >> 2;
-      //temp &= 0x0F;
-#endif // nDEBUG
-      printf("unsupported code 0x%02x -> %1d%1d%1d%1d\n", joydat & 0x0F,
-        ((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0));
-      break;
-  }
-  return c;
 }
 
 int AllocResources()
