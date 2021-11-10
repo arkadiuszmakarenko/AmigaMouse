@@ -57,7 +57,6 @@ _VertBServer:
 	; Wait a bit.
 	; MSP430 controller needs to catch the interrupt and reply on the X/Y mouse coordinate lines
 
-Delay:
 	; cocolino 36,
 	; ez-mouse 25
 	MOVEQ	#17,D1										; Needs testing on a slower Amiga!
@@ -104,17 +103,26 @@ Delay:
 	; Signal the main task
 	; delay introduced in code below is enough to confirm reception to MSP430
 	;
-	MOVE.L	A5,-(SP)						; preserve A1 in the stack
+	MOVE.L	A5,-(SP)						; preserve A5 in the stack
 	MOVE.L	A1,-(SP)						; preserve A1 in the stack
 	MOVE.L 4.W,A6								; ExecBase
 	MOVE.L md_sigbit(A1),D0			; is_Data->sigbit
 	MOVE.L md_Task(A1),A1				; is_Data->task
 	JSR _LVOSignal(A6)
 	MOVE.L	(SP)+,A1						; restore A1 from the stack
-	MOVE.L	(SP)+,A5						; restore A1 from the stack
+	MOVE.L	(SP)+,A5						; restore A5 from the stack
+
+	LEA		_custom,A0						; restore A0
+
+	MOVEQ	#27,D1										; Needs testing on a slower Amiga!
+.wait3
+	MOVE.B	vhposr+1(A0),D0					; Bits 7-0     H8-H1 (horizontal position)
+.wait4
+	CMP.B	vhposr+1(A0),D0
+	BEQ.s	.wait4
+	DBF	D1,	.wait3
 
 	; Save regs for C code after MMB pulse
-	LEA		_custom,A0						; restore A0
 	MOVE.W #$0303,D1
 	MOVE.W D1,D0
 	AND.W	joy0dat(A0),D1				; Mouse Counters (used now)

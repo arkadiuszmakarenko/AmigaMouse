@@ -13,20 +13,34 @@
 //#define NM_WHEEL_UP 0x7A
 //#define NM_WHEEL_DOWN 0x7B
 
+//#define DEBUG
+
 #define VERSTAG "\0$VER: Blabber mouse driver 0.2.0 ("__DATE__")"
 
-//#define DEBUG
+/*  0x21 | 1001 |1101|1101|D|3| | CODE_MMB_UP
+    0x23 | 1011 |1110|1110|E|3| | CODE_MMB_DOWN
+    0x20 | 1000 |1100|1100|C|2| | CODE_4TH_DOWN
+    0x32 | 1110 |1011|1011|B|3| | CODE_WHEEL_UP
+    0x31 | 1101 |1001|1001|9|2|*| CODE_WHEEL_LEFT
+    0x33 | 1111 |1010|1010|A|2|*| CODE_4TH_UP
+
+    0x12 | 0110 |0111|0111|7|3| | CODE_WHEEL_DOWN
+    0x11 | 0101 |0101|0101|5|2|*| CODE_5TH_UP
+    0x13 | 0111 |0110|0110|6|2|*| CODE_WHEEL_RIGHT
+
+    0x02 | 0010 |0011|0011|3|2| | CODE_5TH_DOWN */
+
+#define MM_FIVETH_DOWN 0x03
+#define MM_FIVETH_UP 0x05
+#define MM_WHEEL_RIGHT 0x06
+#define MM_WHEEL_DOWN 0x07
+#define MM_WHEEL_LEFT 0x09
+#define MM_FOURTH_UP 0x0A
+#define MM_WHEEL_UP 0x0B
+#define MM_FOURTH_DOWN 0x0C
+#define MM_MIDDLEMOUSE_UP 0x0D
+#define MM_MIDDLEMOUSE_DOWN 0x0E
 #define MM_NOTHING 0
-#define MM_WHEEL_DOWN 1
-#define MM_WHEEL_UP 2
-#define MM_WHEEL_LEFT 3
-#define MM_WHEEL_RIGHT 4
-#define MM_MIDDLEMOUSE_DOWN 5
-#define MM_MIDDLEMOUSE_UP 6
-#define MM_FOURTH_DOWN 7
-#define MM_FOURTH_UP 8
-#define MM_FIVETH_DOWN 9
-#define MM_FIVETH_UP 10
 
 #define OUTRY 1L<<15
 #define DATRY 1L<<14
@@ -74,75 +88,50 @@ BYTE intsignal;
 int code,joydat, msgdata;
 int temp, bang_cnt;
 ULONG potbits;
-UBYTE button_state;
+UBYTE button_state_4th, button_state_5th;
 UWORD start_line;
+int max_length;
 
 STRPTR ver = (STRPTR)VERSTAG;
 
-/*  0x23 | 1011 |1  1  1  0 |1110|E|1101|D| 3 | | CODE_MMB_DOWN
-    0x21 | 1001 |1  1  0  1 |1101|D|1110|E| 3 | | CODE_MMB_UP
-    0x20 | 1000 |1  1  0  0 |1100|C|1100|C| 2 | | CODE_4TH_DOWN
-    0x32 | 1110 |1  0  1  1 |1011|B|1011|B| 3 | | CODE_WHEEL_UP
-    0x33 | 1111 |1  0  1  0 |1010|A|1001|9| 2 |*| CODE_4TH_UP
-    0x31 | 1101 |1  0  0  1 |1001|9|1010|A| 2 |*| CODE_WHEEL_LEFT
-    0x12 | 0110 |0  1  1  1 |0111|7|0111|7| 3 | | CODE_WHEEL_DOWN
-    0x13 | 0111 |0  1  1  0 |0110|6|0101|5| 2 |*| CODE_WHEEL_RIGHT
-    0x11 | 0101 |0  1  0  1 |0101|5|0110|6| 2 |*| CODE_5TH_UP
-    0x02 | 0010 |0  0  1  1 |0011|3|0011|3| 2 | | CODE_5TH_DOWN */
-
-unsigned int mouse_codes[] = {  MM_NOTHING, // 0
-                                MM_NOTHING, // 1
-                                MM_NOTHING, // 2
-                                MM_FIVETH_DOWN, // 3
-                                MM_NOTHING, // 4
-                                MM_FIVETH_UP, // 5
-                                MM_WHEEL_RIGHT, // 6
-                                MM_WHEEL_DOWN, // 7
-                                MM_NOTHING, // 8
-                                MM_WHEEL_LEFT, // 9
-                                MM_FOURTH_UP, // A
-                                MM_WHEEL_UP, // B
-                                MM_FOURTH_DOWN, // C
-                                MM_MIDDLEMOUSE_UP, // D
-                                MM_MIDDLEMOUSE_DOWN, // E
-                                MM_NOTHING // F
-};
-
-int mouse_code(int joydat)
+int mouse_code(unsigned int c)
 {
-  int c = mouse_codes[joydat];
-  if(c == MM_FOURTH_DOWN) {
-    if(button_state & 0x01)
-      c = MM_NOTHING;
-    else
-      button_state |= 0x01;
+  switch(c)
+  {
+    case MM_FOURTH_DOWN:
+      if(button_state_4th)
+        return 0;
+      else
+        button_state_4th = 1;
+    break;
+    case MM_FOURTH_UP:
+      if(button_state_4th)
+        button_state_4th = 0;
+      else
+        return 0;
+    break;
+    case MM_FIVETH_DOWN:
+      if(button_state_5th)
+        return 0;
+      else
+        button_state_5th = 1;
+    break;
+    case MM_FIVETH_UP:
+      if(button_state_5th)
+        button_state_5th = 0;
+      else
+        return 0;
+    break;
   }
-  if(c == MM_FOURTH_UP) {
-    if(button_state & 0x01)
-      button_state &= ~0x01;
-    else
-      c = MM_NOTHING;
-  }
-  if(c == MM_FIVETH_DOWN) {
-    if(button_state & 0x02)
-      c = MM_NOTHING;
-    else
-      button_state |= 0x02;
-  }
-  if(c == MM_FIVETH_UP) {
-    if(button_state & 0x02)
-      button_state &= ~0x02;
-    else
-      c = MM_NOTHING;
-  }
-  return c;
+  return 1;
 }
 
 int main(void)
 {
   mousedata.head = 0;
   mousedata.tail = 0;
-  button_state = 0;
+  max_length = 0;
+  button_state_4th = button_state_5th = 0;
 	if (AllocResources())
 	{
 		mousedata.task = FindTask(0);
@@ -171,19 +160,26 @@ int main(void)
           msgdata = mousedata.codes[mousedata.tail];
           //msgdata = msgdata ^ ((msgdata & 0xAA) >> 1);
 
+          if((mousedata.head - mousedata.tail) > max_length)
+          {
+            max_length = mousedata.head - mousedata.tail;
+          }
+
           temp = msgdata >> 4; // ^ ((msgdata & 0x22) >> 1);
           msgdata &= 0x0F;
 
 #ifdef DEBUG
-          printf("%1d%1d%1d%1d -> %1d%1d%1d%1d\n",
+          printf("%1X [%1d%1d%1d%1d] -> %1X [%1d%1d%1d%1d]\n", temp,
           ((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0),
+          msgdata,
           ((msgdata & 0x0008) >> 3), ((msgdata & 0x0004) >> 2), ((msgdata & 0x0002) >> 1), ((msgdata & 0x0001) >> 0));
 #endif // DEBUG
 
           // detect accidental change on the data lines
           // only accept the expected reaction of MSP controller
-					if(!temp && msgdata)
-            CreateMouseEvents((msgdata));
+          //if((!temp || (temp == msgdata)) && msgdata && mouse_code(msgdata))
+          if(!temp && msgdata && mouse_code(msgdata))
+            CreateMouseEvents(msgdata);
 
           mousedata.codes[mousedata.tail] = 0;
           ++mousedata.tail;
@@ -195,6 +191,7 @@ int main(void)
         printf("head: %d.\n", mousedata.head);
         printf("tail: %d.\n", mousedata.tail);
 #endif // DEBUG
+        printf("maximum FIFO length was: %d\n", max_length);
 				PutStr("Exiting\n");
 				break;
 			}
