@@ -25,7 +25,7 @@ HOW IT WORKS?
 Mouse controller sends code through four quadrature signals. Synchronisation with Amiga driver occurs at the falling edge of MMB pin.
 
 |joy0dat|      | xor  |   | swap | X | Hamm | * |                  |
--------------------------------------------------------------------|
+|------:|-----:|-----:|--:|-----:|--:|-----:|:-:|:-----------------|
 |  0x21 | 1001 | 1101 | D | 1110 | E |   3  |   | CODE_MMB_UP      |
 |  0x23 | 1011 | 1110 | E | 1101 | D |   3  |   | CODE_MMB_DOWN    |
 |  0x20 | 1000 | 1100 | C | 1100 | C |   2  |   | CODE_4TH_DOWN    |
