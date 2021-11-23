@@ -8,31 +8,37 @@ NOTES
 =====
 
 The Middle mouse button is emulated, it does not use the real middle mouse button pin.
-This is because this pin is used for communication between the Amiga and a mouse for 
+This is because this pin is used for communication between the Amiga and a mouse for
 scroll wheel etc.
 
 
 THANKS
 ======
 
-Kris Adcock for his PS/2-to-Quadrature-mouse project.
-http://danceswithferrets.org/geekblog/?m=201702
-PS2_to_Amiga.ino is based heavily on his PS2_to_Quadrature_Mouse.ino
-I used an interrupt based PS/2 library instead if Kris's.
-
-PS2Utils Arduino library by Roger Tawa (Apache License 2.0)
-https://github.com/rogerta/PS2Utils
-Designed for a PS/2 keyboard but works perfectly with a mouse.  Interrupt driven.
-
-digitalWriteFast by Nickson Yap
-
-Members of English Amiga Board for help
-http://eab.abime.net/showthread.php?p=1178490
+Source code is based on the code prepared by nogginthenog.
+https://github.com/paulroberthill/AmigaPS2Mouse
 
 
-
-OUTSTANDING ISSUES
-==================
+HOW IT WORKS?
+=============
 
 Mouse controller sends code through four quadrature signals. Synchronisation with Amiga driver occurs at the falling edge of MMB pin.
 
+|joy0dat|      | xor  |   | swap | X | Hamm | * |                  |
+-------------------------------------------------------------------|
+|  0x21 | 1001 | 1101 | D | 1110 | E |   3  |   | CODE_MMB_UP      |
+|  0x23 | 1011 | 1110 | E | 1101 | D |   3  |   | CODE_MMB_DOWN    |
+|  0x20 | 1000 | 1100 | C | 1100 | C |   2  |   | CODE_4TH_DOWN    |
+|  0x32 | 1110 | 1011 | B | 1011 | B |   3  |   | CODE_WHEEL_UP    |
+|  0x31 | 1101 | 1001 | 9 | 1010 | A |   2  | * | CODE_WHEEL_LEFT  |
+|  0x33 | 1111 | 1010 | A | 1001 | 9 |   2  | * | CODE_4TH_UP      |
+|  0x12 | 0110 | 0111 | 7 | 0111 | 7 |   3  |   | CODE_WHEEL_DOWN  |
+|  0x11 | 0101 | 0101 | 5 | 0110 | 6 |   2  | * | CODE_5TH_UP      |
+|  0x13 | 0111 | 0110 | 6 | 0101 | 5 |   2  | * | CODE_WHEEL_RIGHT |
+|  0x02 | 0010 | 0011 | 3 | 0011 | 3 |   2  |   | CODE_5TH_DOWN    |
+
+- joy0dat - code read from hardware register (after xor'ing with previously read value)
+- xor - xor applied on bits X0 and X1 (Y0 and Y1) - see [elowar](http://amigadev.elowar.com/read/ADCD_2.1/Hardware_Manual_guide/node0038.html) for details
+- swap - position Y0 and Y1 swapped
+- Hamm - code hamming distance
+- * - problematic codes - potential occurrence when traditional mouse connected.

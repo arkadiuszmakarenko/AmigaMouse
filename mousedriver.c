@@ -15,7 +15,6 @@
 
 //#define DEBUG
 
-#define VERSTAG "\0$VER: Blabber mouse driver 0.2.0 ("__DATE__")"
 /*                           V
     0x21 | 1001 |1101|D|1110|E|3| | CODE_MMB_UP
     0x23 | 1011 |1110|E|1101|D|3| | CODE_MMB_DOWN
@@ -89,8 +88,9 @@ ULONG potbits;
 UBYTE button_state_4th, button_state_5th;
 UWORD start_line;
 int max_length;
+int edge_count;
 
-STRPTR ver = (STRPTR)VERSTAG;
+const char version[] = "$VER: Blabber mouse driver 0.2.0 (" __DATE__ ") Szymon Bieganski";
 
 int mouse_code(unsigned int c)
 {
@@ -129,6 +129,7 @@ int main(void)
   mousedata.head = 0;
   mousedata.tail = 0;
   max_length = 0;
+  edge_count = 0;
   button_state_4th = button_state_5th = 0;
 	if (AllocResources())
 	{
@@ -138,11 +139,7 @@ int main(void)
 		SetTaskPri(mousedata.task, 20); /* same as input.device */
 
 		printf("Blabber mouse wheel driver installed.\n");
-		printf(__DATE__);
-		printf("; ");
-		printf(__TIME__);
-		printf("\ngcc: ");
-		printf(__VERSION__);
+		printf(__DATE__ "; " __TIME__ "\ngcc: " __VERSION__);
     printf("\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
     printf("To stop press CTRL-C.\n");
 //		printf("DEBUG: NM_WHEEL driver started\n");
@@ -179,6 +176,9 @@ int main(void)
           if(!temp && msgdata && mouse_code(msgdata))
             CreateMouseEvents(msgdata);
 
+          if(temp)
+            ++edge_count;
+
           mousedata.codes[mousedata.tail] = 0;
           ++mousedata.tail;
         }
@@ -189,7 +189,8 @@ int main(void)
         printf("head: %d.\n", mousedata.head);
         printf("tail: %d.\n", mousedata.tail);
 #endif // DEBUG
-        printf("maximum FIFO length was: %d\n", max_length);
+        printf("Maximum FIFO used depth was: %d\n", max_length);
+        printf("Spurious edges encountered: %d\n", edge_count);
 				PutStr("Exiting\n");
 				break;
 			}
