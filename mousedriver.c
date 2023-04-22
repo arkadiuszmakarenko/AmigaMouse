@@ -90,6 +90,10 @@ UWORD start_line;
 int max_length;
 int edge_count;
 
+/* Common structs */
+#define COLOR00 0xdff180
+UWORD *color00 = (UWORD *)COLOR00;
+
 const char version[] = "$VER: Blabber mouse driver 0.2.0 (" __DATE__ ") Szymon Bieganski";
 
 int mouse_code(unsigned int c)
@@ -150,6 +154,9 @@ int main(void)
 			ULONG signals = Wait (mousedata.sigbit | SIGBREAKF_CTRL_C);
 			if (signals & mousedata.sigbit)
 			{
+        //custom->color[0] = 0xfff;	// bg white
+        //*color00 = 0xfff;	// bg white
+        *color00 = 0x000;	// bg black
         while(mousedata.head != mousedata.tail)
         {
           msgdata = mousedata.codes[mousedata.tail];
@@ -181,7 +188,10 @@ int main(void)
 
           mousedata.codes[mousedata.tail] = 0;
           ++mousedata.tail;
+
         }
+        //custom->color[0] = 0x116;	// bg blue
+        *color00 = 0x666;	// bg blue
 			}
 			if (signals & SIGBREAKF_CTRL_C)
 			{
