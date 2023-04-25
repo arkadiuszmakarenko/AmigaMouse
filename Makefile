@@ -6,7 +6,7 @@ CFLAGS=-O2 -noixemul
 VASM=vasmm68k_mot
 
 #INCLUDE=/opt/gnu-6.5.0b/m68k-amigaos/ndk-include/
-INCLUDE=/opt/amigaos/m68k-amigaos/ndk-include/
+INCLUDE=/opt/amiga/m68k-amigaos/ndk-include/
 #INCLUDE=/opt/m68k-amigaos/m68k-amigaos/sys-include/
 #/opt/m68k-amigaos/m68k-amigaos/os-include/
 
@@ -21,7 +21,7 @@ DEPS=
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-Blabber.driver: mousedriver.o vbrserver.o
+TankMouse.driver: mousedriver.o vbrserver.o
 	$(CC) $(CFLAGS) -o $@ mousedriver.o vbrserver.o
 
 clean:

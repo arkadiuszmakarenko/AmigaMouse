@@ -15,28 +15,23 @@
 
 //#define DEBUG
 
-/*                           V
-    0x21 | 1001 |1101|D|1110|E|3| | CODE_MMB_UP
-    0x23 | 1011 |1110|E|1101|D|3| | CODE_MMB_DOWN
-    0x20 | 1000 |1100|C|1100|C|2| | CODE_4TH_DOWN
-    0x32 | 1110 |1011|B|1011|B|3| | CODE_WHEEL_UP
-    0x31 | 1101 |1001|9|1010|A|2|*| CODE_WHEEL_LEFT
-    0x33 | 1111 |1010|A|1001|9|2|*| CODE_4TH_UP
-    0x12 | 0110 |0111|7|0111|7|3| | CODE_WHEEL_DOWN
-    0x11 | 0101 |0101|5|0110|6|2|*| CODE_5TH_UP
-    0x13 | 0111 |0110|6|0101|5|2|*| CODE_WHEEL_RIGHT
-    0x02 | 0010 |0011|3|0011|3|2| | CODE_5TH_DOWN */
+// avoid definition of any of the following pairs to disable reporting them to OS
+#define MM_WHEEL_UP 0x0A
+#define MM_WHEEL_DOWN 0x09
 
-#define MM_FIVETH_DOWN 0x03
-#define MM_FIVETH_UP 0x05
-#define MM_WHEEL_RIGHT 0x06
-#define MM_WHEEL_DOWN 0x07
-#define MM_WHEEL_LEFT 0x09
-#define MM_FOURTH_UP 0x0A
-#define MM_WHEEL_UP 0x0B
-#define MM_FOURTH_DOWN 0x0C
-#define MM_MIDDLEMOUSE_UP 0x0D
-#define MM_MIDDLEMOUSE_DOWN 0x0E
+// do not define the following constants to disable reporting MMB
+//#define MM_MIDDLEMOUSE_UP 0x0D
+//#define MM_MIDDLEMOUSE_DOWN 0x0E
+
+//#define MM_WHEEL_RIGHT 0x06
+//#define MM_WHEEL_LEFT 0x03
+
+//#define MM_FOURTH_UP 0x80
+//#define MM_FOURTH_DOWN 0x40
+
+//#define MM_FIVETH_UP 0x08
+//#define MM_FIVETH_DOWN 0x04
+
 #define MM_NOTHING 0
 
 #define OUTRY 1L<<15
@@ -47,6 +42,9 @@
 #define DATLY 1L<<10
 #define OUTLX 1L<<9
 #define DATLX 1L<<8
+
+#define LMB_MASK 1L<<6
+#define RMB_MASK 1L<<7
 
 extern void VertBServer();  /* proto for asm interrupt server */
 
@@ -65,7 +63,7 @@ struct Interrupt vertblankint = {
 		0,			// struct  Node *ln_Pred;	/* Pointer to previous (predecessor) */
 		NT_INTERRUPT,		// UBYTE   ln_Type;
 		10-10, //10-10,			// BYTE    ln_Pri;		/* Priority, for sorting */
-		"Wheel Mouse Drver"	// char    *ln_Name;		/* ID string, null terminated */
+		"Wheel Mouse Driver"	// char    *ln_Name;		/* ID string, null terminated */
 	},
 	&mousedata,			// APTR    is_Data;		    /* server data segment  */
 	VertBServer			// VOID    (*is_Code)();	    /* server code entry    */
@@ -82,48 +80,52 @@ struct InputEvent *MouseEvent;
 struct InputBase  *InputBase;
 struct PotgoBase  *PotgoBase;
 BYTE intsignal;
-int code,joydat, msgdata;
-int temp, bang_cnt;
+int code, joydat, msgdata, prevmsgdata;
+int bang_cnt;
 ULONG potbits;
-UBYTE button_state_4th, button_state_5th;
+UBYTE button_state_mmb, button_state_4th, button_state_5th;
 UWORD start_line;
 int max_length;
 int edge_count;
 
-/* Common structs */
-#define COLOR00 0xdff180
-UWORD *color00 = (UWORD *)COLOR00;
-
-const char version[] = "$VER: Blabber mouse driver 0.2.0 (" __DATE__ ") Szymon Bieganski";
+const char version[] = "$VER: TankMouse.driver 0.2 (" __DATE__ ") (c) 2023 Szymon Bieganski";
 
 int mouse_code(unsigned int c)
 {
-  switch(c)
+  switch(c & 0x0F)
   {
+#ifdef MM_FOURTH_DOWN
     case MM_FOURTH_DOWN:
       if(button_state_4th)
-        return 0;
+        { button_state_4th = 0; return MM_FOURTH_DOWN; }
       else
-        button_state_4th = 1;
+        return MM_NOTHING;
     break;
+#endif // MM_FOURTH_DOWN
+#ifdef MM_FOURTH_UP
     case MM_FOURTH_UP:
       if(button_state_4th)
-        button_state_4th = 0;
+        return MM_NOTHING;
       else
-        return 0;
+        { button_state_4th = 1; return MM_FOURTH_UP; }
     break;
+#endif // MM_FOURTH_UP
+#ifdef MM_FIVETH_DOWN
     case MM_FIVETH_DOWN:
       if(button_state_5th)
-        return 0;
+        { button_state_5th = 0; return MM_FIVETH_DOWN; }
       else
-        button_state_5th = 1;
+        return MM_NOTHING;
     break;
+#endif // MM_FIVETH_DOWN
+#ifdef MM_FIVETH_UP
     case MM_FIVETH_UP:
       if(button_state_5th)
-        button_state_5th = 0;
+        return MM_NOTHING;
       else
-        return 0;
+        { button_state_5th = 1; return MM_FIVETH_UP; }
     break;
+#endif // MM_FIVETH_UP
   }
   return 1;
 }
@@ -134,7 +136,7 @@ int main(void)
   mousedata.tail = 0;
   max_length = 0;
   edge_count = 0;
-  button_state_4th = button_state_5th = 0;
+  button_state_mmb = button_state_4th = button_state_5th = 1;
 	if (AllocResources())
 	{
 		mousedata.task = FindTask(0);
@@ -142,11 +144,10 @@ int main(void)
 		AddIntServer(INTB_VERTB, &vertblankint);
 		SetTaskPri(mousedata.task, 20); /* same as input.device */
 
-		printf("Blabber mouse wheel driver installed.\n");
+		printf("TankMouse wheel driver installed.\n");
 		printf(__DATE__ "; " __TIME__ "\ngcc: " __VERSION__);
     printf("\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
     printf("To stop press CTRL-C.\n");
-//		printf("DEBUG: NM_WHEEL driver started\n");
 		bang_cnt = 0;
 
 		while (1)
@@ -154,44 +155,74 @@ int main(void)
 			ULONG signals = Wait (mousedata.sigbit | SIGBREAKF_CTRL_C);
 			if (signals & mousedata.sigbit)
 			{
-        //custom->color[0] = 0xfff;	// bg white
-        //*color00 = 0xfff;	// bg white
-        *color00 = 0x000;	// bg black
         while(mousedata.head != mousedata.tail)
         {
           msgdata = mousedata.codes[mousedata.tail];
           //msgdata = msgdata ^ ((msgdata & 0xAA) >> 1);
 
-          if((mousedata.head - mousedata.tail) > max_length)
-          {
-            max_length = mousedata.head - mousedata.tail;
-          }
+          msgdata &= 0xCF;
 
-          temp = msgdata >> 4; // ^ ((msgdata & 0x22) >> 1);
-          msgdata &= 0x0F;
+          if((mousedata.head - mousedata.tail) > max_length)
+            max_length = mousedata.head - mousedata.tail;
+
+          //temp = ((msgdata & 0x0008) >> 3) | ((msgdata & 0x0004) >> 2) | ((msgdata & 0x0002) >> 1) | ((msgdata & 0x0001) >> 0));
 
 #ifdef DEBUG
-          printf("%1X [%1d%1d%1d%1d] -> %1X [%1d%1d%1d%1d]\n", temp,
-          ((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0),
-          msgdata,
-          ((msgdata & 0x0008) >> 3), ((msgdata & 0x0004) >> 2), ((msgdata & 0x0002) >> 1), ((msgdata & 0x0001) >> 0));
+          if(prevmsgdata != msgdata) {
+            printf("0x%02X [%1d%1d%1d%1d] -> LMB: %1d; RMB: %1d; Q: 0x%01X\n",
+            msgdata,
+            ((msgdata & 0x0008) >> 3), ((msgdata & 0x0004) >> 2), ((msgdata & 0x0002) >> 1), ((msgdata & 0x0001) >> 0),
+            (msgdata & LMB_MASK) >> 6,
+            (msgdata & RMB_MASK) >> 7,
+            (msgdata & 0x000F) >> 0
+            );
+          }
 #endif // DEBUG
 
-          // detect accidental change on the data lines
-          // only accept the expected reaction of MSP controller
-          //if((!temp || (temp == msgdata)) && msgdata && mouse_code(msgdata))
-          if(!temp && msgdata && mouse_code(msgdata))
-            CreateMouseEvents(msgdata);
+          if(msgdata & LMB_MASK)
+          {
+            if(!button_state_mmb)
+            {
+              button_state_mmb = 1;
+#ifdef MM_MIDDLEMOUSE_UP
+              CreateMouseEvents(MM_MIDDLEMOUSE_UP);
+#endif // MM_MIDDLEMOUSE_UP
+            }
+            else
+            {
+              if(!(msgdata & RMB_MASK))
+                CreateMouseEvents(msgdata & 0x0F);
+            }
+          }
+          else
+          {
+            if(button_state_mmb)
+            {
+              button_state_mmb = 0;
+#ifdef MM_MIDDLEMOUSE_DOWN
+              CreateMouseEvents(MM_MIDDLEMOUSE_DOWN);
+#endif // MM_MIDDLEMOUSE_DOWN
+            }
+            else
+            {
+              if(!(msgdata & RMB_MASK))
+                CreateMouseEvents(msgdata & 0x0F);
+            }
+          }
 
-          if(temp)
-            ++edge_count;
+          prevmsgdata = msgdata;
+
+          // accept wheel mouse movement IFF RMB low
+          //if(!(msgdata & 0x0020)) // && mouse_code((msgdata & 0x000F)))
+          //  CreateMouseEvents(mouse_code(msgdata));
+
+          //if(temp)
+          //  ++edge_count;
 
           mousedata.codes[mousedata.tail] = 0;
           ++mousedata.tail;
 
         }
-        //custom->color[0] = 0x116;	// bg blue
-        *color00 = 0x666;	// bg blue
 			}
 			if (signals & SIGBREAKF_CTRL_C)
 			{
@@ -248,8 +279,8 @@ int AllocResources()
 							PutStr("Debug: potgo.resource opened.\n");
 #endif // DEBUG
 							PotgoBase = (struct PotgoBase *)mousedata.potgoResource;
-							potbits = AllocPotBits(OUTLX | DATLX);
-							if(potbits == OUTLX | DATLX)
+							potbits = AllocPotBits(OUTLX | DATLX); // | OUTLY | DATLY);
+							if(potbits == OUTLX | DATLX) // | OUTLY | DATLY)
 							{
 #ifdef DEBUG
 								PutStr("Debug: potgo output MMB allocated.");
@@ -316,18 +347,23 @@ void CreateMouseEvents(int t)
 #endif // DEBUG
 			MouseEvent->ie_Code = NM_WHEEL_UP;
 		break;
+#ifdef MM_WHEEL_LEFT
 		case MM_WHEEL_LEFT:
 #ifdef DEBUG
 		  printf("Debug: Wheel Left.\n");
 #endif // DEBUG
 			MouseEvent->ie_Code = NM_WHEEL_LEFT;
 		break;
+#endif // MM_WHEEL_LEFT
+#ifdef MM_WHEEL_RIGHT
 		case MM_WHEEL_RIGHT:
 #ifdef DEBUG
 		  printf("Debug: Wheel Right.\n");
 #endif // DEBUG
 			MouseEvent->ie_Code = NM_WHEEL_RIGHT;
 		break;
+#endif // MM_WHEEL_RIGHT
+#ifdef MM_MIDDLEMOUSE_DOWN
 		case MM_MIDDLEMOUSE_DOWN:
 #ifdef DEBUG
 		  printf("Debug: MMB down.\n");
@@ -338,6 +374,8 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
 		break;
+#endif // MM_MIDDLEMOUSE_DOWN
+#ifdef MM_MIDDLEMOUSE_UP
 		case MM_MIDDLEMOUSE_UP:
 #ifdef DEBUG
 		  printf("Debug: MMB up.\n");
@@ -348,6 +386,8 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
 			break;
+#endif // MM_MIDDLEMOUSE_UP
+#ifdef MM_FOURTH_DOWN
 		case MM_FOURTH_DOWN:
 #ifdef DEBUG
 		  printf("Debug: 4th down.\n");
@@ -356,6 +396,8 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
 		break;
+#endif // MM_FOURTH_DOWN
+#ifdef MM_FOURTH_UP
 		case MM_FOURTH_UP:
 #ifdef DEBUG
 		  printf("Debug: 4th up.\n");
@@ -364,6 +406,8 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
 			break;
+#endif // MM_FOURTH_UP
+#ifdef MM_FIVETH_DOWN
 		case MM_FIVETH_DOWN:
 #ifdef DEBUG
 		  printf("Debug: 5th down.\n");
@@ -372,6 +416,8 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
 		break;
+#endif // MM_FIVETH_DOWN
+#ifdef MM_FIVETH_UP
 		case MM_FIVETH_UP:
 #ifdef DEBUG
 		  printf("Debug: 5th up.\n");
@@ -380,6 +426,7 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
 			break;
+#endif // MM_FIVETH_UP
 	}
 
 	InputIO->io_Data = (APTR)MouseEvent;

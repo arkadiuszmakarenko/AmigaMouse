@@ -21,7 +21,7 @@ md_codes					equ 14
     SECTION CODE
 
 	; Pin 5 (mouse button 3) is connected to an interrupt enabled pin on the MSP430 controller
-	; Toggling this generates an interrupt and MSP430 writes the scroll wheel
+	; Toggling this generates an interrupt and mouse controller writes the scroll wheel
 	; values to X/Y mouse coordinate delta lines
 	XDEF    _VertBServer
 _VertBServer:
@@ -52,14 +52,14 @@ _VertBServer:
 
 	; Save regs for C code before
 	LEA		_custom,A0
-	MOVEA	joy0dat(A0),A5						; Mouse Counters (used now)
+	;MOVEA	joy0dat(A0),A5						; store XY just before the pulse (A5)
 
 	; Wait a bit.
-	; MSP430 controller needs to catch the interrupt and reply on the X/Y mouse coordinate lines
+	; Mouse controller needs to catch the interrupt and reply on the X/Y mouse coordinate lines
 
 	; cocolino 36,
 	; ez-mouse 25
-	MOVEQ	#18,D1										; Needs testing on a slower Amiga!
+	MOVEQ	#27,D1										; Needs testing on a slower Amiga!
 .wait1
 	MOVE.B	vhposr+1(A0),D0					; Bits 7-0     H8-H1 (horizontal position)
 .wait2
@@ -67,29 +67,12 @@ _VertBServer:
 	BEQ.s	.wait2
 	DBF	D1,	.wait1
 
+	LEA	_custom,A0
 	; Save regs for C code after MMB pulse
-	MOVE.W #$0303,D1
-	MOVE.W D1,D0
-	AND.W	joy0dat(A0),D1				; Mouse Counters (used now)
-	MOVE.W	A5,D0
-	EOR.W	D0,D1									; EXOR joy0dat before and after pulse
+	MOVE.W	joy0dat(A0),D1				; Mouse Counters (used now)
 	AND.W	#$0303,D1							; mask out everything, but the X0,X1, Y0 and Y1
 
-	; If there was no change on data joy0dat values, no need to signal
-	;TST.W	D1
-	BEQ	exit
-
-	CMP.L #$0001,D1							; 0010
-	BEQ	exit
-	CMP.L #$0003,D1   			    ; 0001
-	BEQ	exit
-	CMP.L #$0100,D1							; 0100
-	BEQ	exit
-	CMP.L #$0300,D1							; 1000
-	BEQ	exit
-	CMP.L #$0202,D1							; 1111
-	BEQ	exit
-
+	; move around bits representing quadrature signals from mouse to occupy lower nibble
 	ROR.b #$2,D1								; move position 0 and 1 at the position 6 and 7
 	LSR.w #$6,D1								; move positino 9 through 7 down to 3:0
 	MOVEQ	#0,D0									; just in case clear entire D0
@@ -99,18 +82,30 @@ _VertBServer:
 	LSR.b D1										; shift them over to position of x0 and y0
 	EOR.b D1,md_codes(A1,D0.w)	; xor x0 and y0 with x1 and y1
 
+	AND.b #$0F,md_codes(A1,D0.w)	; clear higher nibble just to prepare for LMB and RMB status
+; check for the status of LMB line used to represent MMB button
+	BTST	#6,$BFE001							; test left mouse button (set Z flag)
+	BEQ .lmb_low									; if not pressed do not set flag in message
+	BSET #$6,md_codes(A1,D0.w)		; set 5th bit in the message to indicate LMB state
+	 															; -> MMB state in cocolino protocol
+.lmb_low
+
+; check for the status of RMB line used to indicate non-idle state of scroll wheel
+	BTST.W	#10,potinp(A0)			; read POTGOR
+	BEQ	.rmb_low								; if not pressed do not set flag in message
+	BSET.b #$7,md_codes(A1,D0.w)	; set 5th bit in the message to indicate RMB state
+.rmb_low
+
 	;
 	; Signal the main task
 	; delay introduced in code below is enough to confirm reception to MSP430
 	;
-	;MOVE.L	A5,-(SP)						; preserve A5 in the stack
 	MOVE.L	A1,-(SP)						; preserve A1 in the stack
 	MOVE.L 4.W,A6								; ExecBase
 	MOVE.L md_sigbit(A1),D0			; is_Data->sigbit
 	MOVE.L md_Task(A1),A1				; is_Data->task
 	JSR _LVOSignal(A6)
 	MOVE.L	(SP)+,A1						; restore A1 from the stack
-	;MOVE.L	(SP)+,A5						; restore A5 from the stack
 
 	LEA		_custom,A0						; restore A0
 
@@ -121,23 +116,6 @@ _VertBServer:
 	CMP.B	vhposr+1(A0),D0
 	BEQ.s	.wait4
 	DBF	D1,	.wait3
-
-	; Save regs for C code after MMB pulse
-	MOVE.W #$0303,D1
-	MOVE.W D1,D0
-	AND.W	joy0dat(A0),D1				; Mouse Counters (used now)
-	MOVE.W	A5,D0								; A5 should still hold joy0dat before triggering MSP
-	EOR.W	D0,D1									; EXOR joy0dat before and after pulse
-	AND.W	#$0303,D1							; mask out everything, but the X0,X1, Y0 and Y1
-
-	ROR.b #$2,D1								; move position 0 and 1 at the position 6 and 7
-	LSR.w #$2,D1								; move positino 9 through 7 down to 7:4
-	MOVEQ	#0,D0									; just in case clear entire D0
-	MOVE.b	md_head(A1),D0			; get the current head counter
-	OR.b D1,md_codes(A1,D0.w)		; place current code (bits 0x0003) at the head position
-	AND.b	#$A0,D1
-	LSR.b D1
-	EOR.b D1,md_codes(A1,D0.w)
 
 	ADD.b	#$1,md_head(A1)				; increment message counter
 
