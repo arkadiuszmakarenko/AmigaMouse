@@ -1,13 +1,11 @@
-#PREFIX=m68k-linux-gnu-
-#PREFIX=/opt/gnu-6.5.0b/bin/m68k-amigaos-
-PREFIX=/opt/m68k-amigaos/bin/m68k-amigaos-
+PREFIX=m68k-amigaos-
 
 CC=$(PREFIX)gcc
 CFLAGS=-O2 -noixemul
 VASM=vasmm68k_mot
 
 #INCLUDE=/opt/gnu-6.5.0b/m68k-amigaos/ndk-include/
-INCLUDE=/opt/amigaos/m68k-amigaos/ndk-include/
+INCLUDE=/opt/amiga/m68k-amigaos/ndk-include/
 #INCLUDE=/opt/m68k-amigaos/m68k-amigaos/sys-include/
 #/opt/m68k-amigaos/m68k-amigaos/os-include/
 
@@ -35,5 +33,5 @@ clean:
 #/opt/m68k-amigaos/bin/m68k-amigaos-gcc -O2 -noixemul vbr.c vbrserver.o -o vbr
 #chmod +x vbr
 #sudo cp vbr /mnt/arcs/Amiga
-#	
+#
 ##	Makefile  mousedriver.c  vbrserver.s
