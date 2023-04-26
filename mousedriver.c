@@ -32,6 +32,19 @@
 //#define MM_FIVETH_UP 0x08
 //#define MM_FIVETH_DOWN 0x04
 
+#if defined MM_WHEEL_LEFT && defined MM_WHEEL_RIGHT
+#define TEMPLATE "V=VREV/S,H=HREV/S"
+LONG myargs[2];
+BOOL vreverse, hreverse;
+#else
+#define TEMPLATE "V=VREV/S"
+LONG myargs[1];
+BOOL vreverse;
+#endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+
+struct RDArgs *myrda;
+
+
 #define MM_NOTHING 0
 
 #define OUTRY 1L<<15
@@ -88,7 +101,7 @@ UWORD start_line;
 int max_length;
 int edge_count;
 
-const char version[] = "$VER: TankMouse.driver 0.2 (" __DATE__ ") (c) 2023 Szymon Bieganski";
+const char version[] = "$VER: TankMouse.driver 0.3 (" __DATE__ ") (c) 2023 Szymon Bieganski";
 
 int mouse_code(unsigned int c)
 {
@@ -147,6 +160,25 @@ int main(void)
 		printf("TankMouse wheel driver installed.\n");
 		printf(__DATE__ "; " __TIME__ "\ngcc: " __VERSION__);
     printf("\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
+
+    vreverse = FALSE;
+#if defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+    hreverse = FALSE;
+#endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+
+    if(myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {	/* parse my command line */
+  		ReadArgs(TEMPLATE, myargs, myrda);
+      if(myargs[0])
+        vreverse = TRUE;
+#if defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+      if(myargs[1])
+        hreverse = TRUE;
+#endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+    }
+    printf("reverse vertical axis  : %s\n", vreverse?"TRUE":"FALSE");
+#if defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+    printf("reverse horizontal axis: %s\n", hreverse?"TRUE":"FALSE");
+#endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
     printf("To stop press CTRL-C.\n");
 		bang_cnt = 0;
 
@@ -328,6 +360,19 @@ void CreateMouseEvents(int t)
 {
   if(t == MM_NOTHING)
     return;
+  if(vreverse && ((t == MM_WHEEL_DOWN) || (t == MM_WHEEL_UP)))
+    if(t == MM_WHEEL_DOWN)
+      t = MM_WHEEL_UP;
+    else
+      t = MM_WHEEL_DOWN;
+#if defined MM_WHEEL_LEFT && defined MM_WHEEL_RIGHT
+  if(hreverse && ((t == MM_WHEEL_LEFT) || (t == MM_WHEEL_RIGHT)))
+    if(t == MM_WHEEL_RIGHT)
+      t = MM_WHEEL_LEFT;
+    else
+      t = MM_WHEEL_RIGHT;
+#endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+
 	MouseEvent->ie_EventAddress = NULL;
 	MouseEvent->ie_NextEvent = NULL;
 	MouseEvent->ie_Class = IECLASS_RAWKEY;
