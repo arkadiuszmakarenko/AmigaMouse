@@ -15,6 +15,11 @@
 
 //#define DEBUG
 
+#define TEMPLATE "H=HREV/S,V=VREV/S"
+struct RDArgs *myrda;
+BOOL vreverse, hreverse;
+LONG myargs[2];
+
 /*                           V
     0x21 | 1001 |1101|D|1110|E|3| | CODE_MMB_UP
     0x23 | 1011 |1110|E|1101|D|3| | CODE_MMB_DOWN
@@ -141,6 +146,20 @@ int main(void)
 		printf("Blabber mouse wheel driver installed.\n");
 		printf(__DATE__ "; " __TIME__ "\ngcc: " __VERSION__);
     printf("\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
+
+    #define TEMPLATE "H=HREV/S,V=VREV/S"
+    struct RDArgs *myrda;
+    hreverse = vreverse = FALSE;
+
+    if(myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {	/* parse my command line */
+  		ReadArgs(TEMPLATE, myargs, myrda);
+      if(myargs[0])
+        hreverse = TRUE;
+      if(myargs[1])
+        vreverse = TRUE;
+    }
+    printf("reverse horizontal axis: %s\n", hreverse?"TRUE":"FALSE");
+    printf("reverse vertical axis  : %s\n", vreverse?"TRUE":"FALSE");
     printf("To stop press CTRL-C.\n");
 //		printf("DEBUG: NM_WHEEL driver started\n");
 		bang_cnt = 0;
@@ -287,6 +306,17 @@ void CreateMouseEvents(int t)
 {
   if(t == MM_NOTHING)
     return;
+  if(vreverse && ((t == MM_WHEEL_DOWN) || (t == MM_WHEEL_UP)))
+    if(t == MM_WHEEL_DOWN)
+      t = MM_WHEEL_UP;
+    else
+      t = MM_WHEEL_DOWN;
+  if(hreverse && ((t == MM_WHEEL_LEFT) || (t == MM_WHEEL_RIGHT)))
+    if(t == MM_WHEEL_RIGHT)
+      t = MM_WHEEL_LEFT;
+    else
+      t = MM_WHEEL_RIGHT;
+
 	MouseEvent->ie_EventAddress = NULL;
 	MouseEvent->ie_NextEvent = NULL;
 	MouseEvent->ie_Class = IECLASS_RAWKEY;
