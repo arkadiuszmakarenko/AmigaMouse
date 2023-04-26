@@ -1,0 +1,22 @@
+Short:        Scroll-wheel driver for TankMouse
+Uploader:     S Bieganski chello nl (Szymon Bieganski)
+Author:       Szymon Bieganski (SQ7BTI)
+Type:         driver/input
+Version:      0.2
+Architecture: m68k-amigaos >= 2.0.4
+Distribution: Aminet
+
+USE
+
+The scroll wheel driver after successful installation in User-startup,
+should start automatically and provide translation of signals produced by your mouse
+attached to the DE9 connector, e.g. through provided adapter.
+
+TROUBLESHOOTING
+
+Operation can be verified through RawKeys (http://aminet.net/package/dev/moni/Rawkeys)
+which monitors signals coming from input devices such as keyboard, and mice.
+TankMouse produces signals:
+
+- Wheel forward
+- Wheel backward

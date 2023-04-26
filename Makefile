@@ -24,5 +24,10 @@ DEPS=
 TankMouse.driver: mousedriver.o vbrserver.o
 	$(CC) $(CFLAGS) -o $@ mousedriver.o vbrserver.o
 
+aminet: TankMouse.driver
+	cp -f TankMouse.driver TankMouse/
+	rm -rf TankMouse.lha
+	lha a TankMouse.lha TankMouse TankMouse.info
+
 clean:
-	rm -rf *.o
+	rm -rf *.o TankMouse.driver
