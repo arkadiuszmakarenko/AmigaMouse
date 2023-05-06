@@ -59,7 +59,7 @@ _VertBServer:
 
 	; cocolino 36,
 	; ez-mouse 25
-	MOVEQ	#27,D1										; Needs testing on a slower Amiga!
+	MOVEQ	#30,D1										; Needs testing on a slower Amiga!
 .wait1
 	MOVE.B	vhposr+1(A0),D0					; Bits 7-0     H8-H1 (horizontal position)
 .wait2
@@ -109,13 +109,13 @@ _VertBServer:
 
 	LEA		_custom,A0						; restore A0
 
-	MOVEQ	#4,D1										; Needs testing on a slower Amiga!
+	MOVEQ   #6,D1								; Needs testing on a slower Amiga!
 .wait3
-	MOVE.B	vhposr+1(A0),D0					; Bits 7-0     H8-H1 (horizontal position)
+	MOVE.B vhposr+1(A0),D0			; Bits 7-0     H8-H1 (horizontal position)
 .wait4
-	CMP.B	vhposr+1(A0),D0
-	BEQ.s	.wait4
-	DBF	D1,	.wait3
+	CMP.B vhposr+1(A0),D0
+	BEQ.s   .wait4
+	DBF     D1,     .wait3
 
 	ADD.b	#$1,md_head(A1)				; increment message counter
 

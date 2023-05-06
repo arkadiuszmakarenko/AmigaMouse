@@ -2,21 +2,22 @@ Short:        Scroll-wheel driver for TankMouse
 Uploader:     S Bieganski chello nl (Szymon Bieganski)
 Author:       Szymon Bieganski (SQ7BTI)
 Type:         driver/input
-Version:      0.2
+Version:      0.3
 Architecture: m68k-amigaos >= 2.0.4
 Distribution: Aminet
 
 USE
 
-The scroll wheel driver after successful installation in User-startup,
-should start automatically and provide translation of signals produced by your mouse
-attached to the DE9 connector, e.g. through provided adapter.
+The scroll wheel driver after successful installation in User-startup, should start automatically and provide translation of signals produced by your mouse attached to the DE9 connector, e.g. through provided adapter.
+Provided Installer script adds an entry to User-Startup, so if there was already installed one for Cocolino, please remove it manually.
+Optional runtime arguments:
+- VREV (S) to reverse vertical axis (UP/DOWN)
+
+FreeWheel (http://aminet.net/package/util/mouse/FreeWheel) could be useful to fine-tune your mouse
 
 TROUBLESHOOTING
 
-Operation can be verified through RawKeys (http://aminet.net/package/dev/moni/Rawkeys)
-which monitors signals coming from input devices such as keyboard, and mice.
-TankMouse produces signals:
-
-- Wheel forward
-- Wheel backward
+Driver can be started from shell. Avoid starting it in parallel with a running instance. Can be stopped by CTR-C and upon exit will produce some statistics.
+Operation can be verified through RawKeys (http://aminet.net/package/dev/moni/Rawkeys) which monitors signals coming from input devices such as keyboards, and mice.
+TankMouse.driver processes signals other signals produced by connected mice, but TankMouse support scroll forward and backward only.
+Please report any incompatibilities of this driver with other adapter supporting (subset of) Cocolino driver and other mice.

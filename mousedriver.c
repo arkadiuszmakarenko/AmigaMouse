@@ -24,7 +24,7 @@
 //#define MM_MIDDLEMOUSE_DOWN 0x0E
 
 //#define MM_WHEEL_RIGHT 0x06
-//#define MM_WHEEL_LEFT 0x03
+//#define MM_WHEEL_LEFT 0x05
 
 //#define MM_FOURTH_UP 0x80
 //#define MM_FOURTH_DOWN 0x40
@@ -32,6 +32,17 @@
 //#define MM_FIVETH_UP 0x08
 //#define MM_FIVETH_DOWN 0x04
 
+#if defined MM_MIDDLEMOUSE_UP && defined MM_MIDDLEMOUSE_DOWN
+#if defined MM_WHEEL_LEFT && defined MM_WHEEL_RIGHT
+#define TEMPLATE "M=MMB/S,V=VREV/S,H=HREV/S"
+LONG myargs[3];
+BOOL vreverse, hreverse, mmb_use;
+#else
+#define TEMPLATE "M=MMB/S,V=VREV/S"
+LONG myargs[2];
+BOOL vreverse, mmb_use;
+#endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+#else
 #if defined MM_WHEEL_LEFT && defined MM_WHEEL_RIGHT
 #define TEMPLATE "V=VREV/S,H=HREV/S"
 LONG myargs[2];
@@ -41,6 +52,7 @@ BOOL vreverse, hreverse;
 LONG myargs[1];
 BOOL vreverse;
 #endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+#endif // defined MM_MIDDLEMOUSE_UP && defined MM_MIDDLEMOUSE_DOWN
 
 struct RDArgs *myrda;
 
@@ -161,6 +173,9 @@ int main(void)
 		printf(__DATE__ "; " __TIME__ "\ngcc: " __VERSION__);
     printf("\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
 
+#if defined MM_MIDDLEMOUSE_UP && defined MM_MIDDLEMOUSE_DOWN
+    mmb_use = FALSE;
+#endif // defined MM_MIDDLEMOUSE_UP && defined MM_MIDDLEMOUSE_DOWN
     vreverse = FALSE;
 #if defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
     hreverse = FALSE;
@@ -168,13 +183,27 @@ int main(void)
 
     if(myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {	/* parse my command line */
   		ReadArgs(TEMPLATE, myargs, myrda);
+#if defined MM_MIDDLEMOUSE_UP && defined MM_MIDDLEMOUSE_DOWN
+      if(myargs[0])
+        mmb_use = TRUE;
+      if(myargs[1])
+        vreverse = TRUE;
+#if defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+      if(myargs[2])
+        hreverse = TRUE;
+#endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+#else
       if(myargs[0])
         vreverse = TRUE;
 #if defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
       if(myargs[1])
         hreverse = TRUE;
 #endif // defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
+#endif // defined MM_MIDDLEMOUSE_UP && defined MM_MIDDLEMOUSE_DOWN
     }
+#if defined MM_MIDDLEMOUSE_UP && defined MM_MIDDLEMOUSE_DOWN
+    printf("use middle mouse button  : %s\n", mmb_use?"TRUE":"FALSE");
+#endif // defined MM_MIDDLEMOUSE_UP && defined MM_MIDDLEMOUSE_DOWN
     printf("reverse vertical axis  : %s\n", vreverse?"TRUE":"FALSE");
 #if defined(MM_WHEEL_LEFT) && defined(MM_WHEEL_RIGHT)
     printf("reverse horizontal axis: %s\n", hreverse?"TRUE":"FALSE");
@@ -217,7 +246,15 @@ int main(void)
             {
               button_state_mmb = 1;
 #ifdef MM_MIDDLEMOUSE_UP
-              CreateMouseEvents(MM_MIDDLEMOUSE_UP);
+              if(mmb_use)
+                CreateMouseEvents(MM_MIDDLEMOUSE_UP);
+              else
+              {
+                ++edge_count;
+#ifdef DEBUG
+                PutStr("Debug: MMB event detected.\n");
+#endif // DEBUG
+              }
 #endif // MM_MIDDLEMOUSE_UP
             }
             else
@@ -232,7 +269,15 @@ int main(void)
             {
               button_state_mmb = 0;
 #ifdef MM_MIDDLEMOUSE_DOWN
-              CreateMouseEvents(MM_MIDDLEMOUSE_DOWN);
+              if(mmb_use)
+                CreateMouseEvents(MM_MIDDLEMOUSE_DOWN);
+                else
+                {
+                  ++edge_count;
+#ifdef DEBUG
+                  PutStr("Debug: MMB event detected.\n");
+#endif // DEBUG
+                }
 #endif // MM_MIDDLEMOUSE_DOWN
             }
             else
@@ -472,6 +517,13 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_Y = 0;
 			break;
 #endif // MM_FIVETH_UP
+    default:
+    #ifdef DEBUG
+		  printf("Debug: unrecognized code 0x%02X.\n", t);
+    #endif // DEBUG
+      ++edge_count;
+      return;
+    break;
 	}
 
 	InputIO->io_Data = (APTR)MouseEvent;
