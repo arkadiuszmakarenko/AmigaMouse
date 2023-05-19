@@ -1,0 +1,15 @@
+; Install script for Blabber wheel scroll driver
+; $VER: Blabber-Install 1.0 (23.04.23)
+ (copylib
+   (prompt "Blabber.driver will be copied to C: drawer.")
+   (help "Driver binaries will be copied to C: drawer.")
+   (source "Blabber.driver")
+   (confirm)
+   (dest "C:")
+ )
+ (startup ("Blabber")
+  (command "IF EXISTS C:Blabber.driver\n  RUN <>NIL: C:Blabber.driver\nENDIF\n" )
+  (prompt "\n\n\nInserting\n\n RUN <> NIL: C:Blabber.driver\n\n into the user-startup")
+  (help "\n\nInserting RUN <> NIL: C:Blabber.driver into the user-startup")
+ )
+( exit "Installation completed!" "\n\n\nPlease reboot your computer now!" (quiet))

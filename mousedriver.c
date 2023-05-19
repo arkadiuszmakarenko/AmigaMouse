@@ -15,10 +15,10 @@
 
 //#define DEBUG
 
-#define TEMPLATE "H=HREV/S,V=VREV/S"
+#define TEMPLATE "S=SWAPHV/S,H=HREV/S,V=VREV/S"
 struct RDArgs *myrda;
-BOOL vreverse, hreverse;
-LONG myargs[2];
+BOOL vreverse, hreverse, hvswap;
+LONG myargs[3];
 
 /*                           V
     0x21 | 1001 |1101|D|1110|E|3| | CODE_MMB_UP
@@ -32,16 +32,21 @@ LONG myargs[2];
     0x13 | 0111 |0110|6|0101|5|2|*| CODE_WHEEL_RIGHT
     0x02 | 0010 |0011|3|0011|3|2| | CODE_5TH_DOWN */
 
-#define MM_FIVETH_DOWN 0x03
-#define MM_FIVETH_UP 0x05
-#define MM_WHEEL_RIGHT 0x06
-#define MM_WHEEL_DOWN 0x07
-#define MM_WHEEL_LEFT 0x09
-#define MM_FOURTH_UP 0x0A
-#define MM_WHEEL_UP 0x0B
-#define MM_FOURTH_DOWN 0x0C
 #define MM_MIDDLEMOUSE_UP 0x0D
 #define MM_MIDDLEMOUSE_DOWN 0x0E
+
+#define MM_WHEEL_UP    0x06
+#define MM_WHEEL_DOWN  0x09
+
+#define MM_WHEEL_RIGHT 0x0B
+#define MM_WHEEL_LEFT  0x07
+
+#define MM_FIVETH_UP   0x05
+#define MM_FIVETH_DOWN 0x03
+
+#define MM_FOURTH_UP   0x0A
+#define MM_FOURTH_DOWN 0x0C
+
 #define MM_NOTHING 0
 
 #define OUTRY 1L<<15
@@ -95,7 +100,7 @@ UWORD start_line;
 int max_length;
 int edge_count;
 
-const char version[] = "$VER: Blabber mouse driver 0.2.0 (" __DATE__ ") Szymon Bieganski";
+const char version[] = "$VER: Blabber.driver 0.3.0 (" __DATE__ ") (c) 2023 Szymon Bieganski";
 
 int mouse_code(unsigned int c)
 {
@@ -147,17 +152,19 @@ int main(void)
 		printf(__DATE__ "; " __TIME__ "\ngcc: " __VERSION__);
     printf("\nMake sure a suitable mouse is connected to mouse port,\notherwise expect unexpected.\n");
 
-    #define TEMPLATE "H=HREV/S,V=VREV/S"
     struct RDArgs *myrda;
-    hreverse = vreverse = FALSE;
+    hreverse = vreverse = hvswap = FALSE;
 
     if(myrda = (struct RDArgs *)AllocDosObject(DOS_RDARGS, NULL)) {	/* parse my command line */
   		ReadArgs(TEMPLATE, myargs, myrda);
       if(myargs[0])
-        hreverse = TRUE;
+        hvswap = TRUE;
       if(myargs[1])
+        hreverse = TRUE;
+      if(myargs[2])
         vreverse = TRUE;
     }
+    printf("swap axes: %s\n", hvswap?"TRUE":"FALSE");
     printf("reverse horizontal axis: %s\n", hreverse?"TRUE":"FALSE");
     printf("reverse vertical axis  : %s\n", vreverse?"TRUE":"FALSE");
     printf("To stop press CTRL-C.\n");
@@ -183,8 +190,7 @@ int main(void)
           msgdata &= 0x0F;
 
 #ifdef DEBUG
-          printf("%1X [%1d%1d%1d%1d] -> %1X [%1d%1d%1d%1d]\n", temp,
-          ((temp & 0x0008) >> 3), ((temp & 0x0004) >> 2), ((temp & 0x0002) >> 1), ((temp & 0x0001) >> 0),
+          printf("%1X [%1d%1d%1d%1d]\n",
           msgdata,
           ((msgdata & 0x0008) >> 3), ((msgdata & 0x0004) >> 2), ((msgdata & 0x0002) >> 1), ((msgdata & 0x0001) >> 0));
 #endif // DEBUG
@@ -304,6 +310,7 @@ void FreeResources()
 
 void CreateMouseEvents(int t)
 {
+  BOOL valid_code = FALSE;
   if(t == MM_NOTHING)
     return;
   if(vreverse && ((t == MM_WHEEL_DOWN) || (t == MM_WHEEL_UP)))
@@ -316,6 +323,16 @@ void CreateMouseEvents(int t)
       t = MM_WHEEL_LEFT;
     else
       t = MM_WHEEL_RIGHT;
+  if(hvswap && ((t == MM_WHEEL_DOWN) || (t == MM_WHEEL_UP) || (t == MM_WHEEL_LEFT) || (t == MM_WHEEL_RIGHT)))
+  {
+    switch(t)
+    {
+      case MM_WHEEL_DOWN: t = MM_WHEEL_LEFT; break;
+      case MM_WHEEL_UP: t = MM_WHEEL_RIGHT; break;
+      case MM_WHEEL_LEFT: t = MM_WHEEL_DOWN; break;
+      case MM_WHEEL_RIGHT: t = MM_WHEEL_UP; break;
+    }
+  }
 
 	MouseEvent->ie_EventAddress = NULL;
 	MouseEvent->ie_NextEvent = NULL;
@@ -329,24 +346,28 @@ void CreateMouseEvents(int t)
 #ifdef DEBUG
 		  printf("Debug: Wheel Down.\n");
 #endif // DEBUG
+      valid_code = TRUE;
 		break;
 		case MM_WHEEL_UP:
+    MouseEvent->ie_Code = NM_WHEEL_UP;
 #ifdef DEBUG
 		  printf("Debug: Wheel Up.\n");
 #endif // DEBUG
-			MouseEvent->ie_Code = NM_WHEEL_UP;
+      valid_code = TRUE;
 		break;
 		case MM_WHEEL_LEFT:
+      MouseEvent->ie_Code = NM_WHEEL_LEFT;
 #ifdef DEBUG
 		  printf("Debug: Wheel Left.\n");
 #endif // DEBUG
-			MouseEvent->ie_Code = NM_WHEEL_LEFT;
+      valid_code = TRUE;
 		break;
 		case MM_WHEEL_RIGHT:
+      MouseEvent->ie_Code = NM_WHEEL_RIGHT;
 #ifdef DEBUG
 		  printf("Debug: Wheel Right.\n");
 #endif // DEBUG
-			MouseEvent->ie_Code = NM_WHEEL_RIGHT;
+      valid_code = TRUE;
 		break;
 		case MM_MIDDLEMOUSE_DOWN:
 #ifdef DEBUG
@@ -357,6 +378,7 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_Qualifier = IEQUALIFIER_MIDBUTTON | IEQUALIFIER_RELATIVEMOUSE;
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
+      valid_code = TRUE;
 		break;
 		case MM_MIDDLEMOUSE_UP:
 #ifdef DEBUG
@@ -367,6 +389,7 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_Qualifier = IEQUALIFIER_RELATIVEMOUSE;
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
+      valid_code = TRUE;
 			break;
 		case MM_FOURTH_DOWN:
 #ifdef DEBUG
@@ -375,6 +398,7 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_Code = NM_BUTTON_FOURTH;
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
+      valid_code = TRUE;
 		break;
 		case MM_FOURTH_UP:
 #ifdef DEBUG
@@ -383,6 +407,7 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_Code = NM_BUTTON_FOURTH | IECODE_UP_PREFIX;
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
+      valid_code = TRUE;
 			break;
 		case MM_FIVETH_DOWN:
 #ifdef DEBUG
@@ -391,6 +416,7 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_Code = NM_BUTTON_FIVETH;
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
+      valid_code = TRUE;
 		break;
 		case MM_FIVETH_UP:
 #ifdef DEBUG
@@ -399,12 +425,15 @@ void CreateMouseEvents(int t)
 			MouseEvent->ie_Code = NM_BUTTON_FIVETH | IECODE_UP_PREFIX;
 			MouseEvent->ie_X = 0;
 			MouseEvent->ie_Y = 0;
+      valid_code = TRUE;
 			break;
 	}
 
-	InputIO->io_Data = (APTR)MouseEvent;
-	InputIO->io_Length = sizeof(struct InputEvent);
-	InputIO->io_Command = IND_WRITEEVENT;
-
-	DoIO((struct IORequest *)InputIO);
+  if(valid_code)
+  {
+    InputIO->io_Data = (APTR)MouseEvent;
+    InputIO->io_Length = sizeof(struct InputEvent);
+    InputIO->io_Command = IND_WRITEEVENT;
+    DoIO((struct IORequest *)InputIO);
+  }
 }
