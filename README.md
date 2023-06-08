@@ -28,13 +28,13 @@ Mouse controller sends code through four quadrature signals. Synchronisation wit
 |------:|-----:|-----:|--:|-----:|--:|-----:|:-:|:-----------------|
 |  0x21 | 1001 | 1101 | D | 1110 | E |   3  |   | CODE_MMB_UP      |
 |  0x23 | 1011 | 1110 | E | 1101 | D |   3  |   | CODE_MMB_DOWN    |
-|  0x20 | 1000 | 1100 | C | 1100 | C |   2  |   | CODE_4TH_DOWN    |
 |  0x32 | 1110 | 1011 | B | 1011 | B |   3  |   | CODE_WHEEL_UP    |
-|  0x31 | 1101 | 1001 | 9 | 1010 | A |   2  | * | CODE_WHEEL_LEFT  |
-|  0x33 | 1111 | 1010 | A | 1001 | 9 |   2  | * | CODE_4TH_UP      |
 |  0x12 | 0110 | 0111 | 7 | 0111 | 7 |   3  |   | CODE_WHEEL_DOWN  |
-|  0x11 | 0101 | 0101 | 5 | 0110 | 6 |   2  | * | CODE_5TH_UP      |
+|  0x31 | 1101 | 1001 | 9 | 1010 | A |   2  | * | CODE_WHEEL_LEFT  |
 |  0x13 | 0111 | 0110 | 6 | 0101 | 5 |   2  | * | CODE_WHEEL_RIGHT |
+|  0x33 | 1111 | 1010 | A | 1001 | 9 |   2  | * | CODE_4TH_UP      |
+|  0x20 | 1000 | 1100 | C | 1100 | C |   2  |   | CODE_4TH_DOWN    |
+|  0x11 | 0101 | 0101 | 5 | 0110 | 6 |   2  | * | CODE_5TH_UP      |
 |  0x02 | 0010 | 0011 | 3 | 0011 | 3 |   2  |   | CODE_5TH_DOWN    |
 
 - joy0dat - code read from hardware register (after xor'ing with previously read value)
