@@ -20,8 +20,8 @@
 #define MM_WHEEL_DOWN 0x09
 
 // do not define the following constants to disable reporting MMB
-//#define MM_MIDDLEMOUSE_UP 0x0D
-//#define MM_MIDDLEMOUSE_DOWN 0x0E
+#define MM_MIDDLEMOUSE_UP 0x0D
+#define MM_MIDDLEMOUSE_DOWN 0x0E
 
 //#define MM_WHEEL_RIGHT 0x06
 //#define MM_WHEEL_LEFT 0x05
